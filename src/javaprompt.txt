@@ -38,6 +38,9 @@ The JSON must be a valid array in the following format:
   - 70% Interview level
   - 30% Fundamentals
 - Make distractors realistic and plausible.
+- Never generate placeholder questions or placeholder options.
+- Every option must be a realistic technical answer that could plausibly appear.
+- If the notes are insufficient, expand using standard knowledge from the same topic instead of generating generic placeholders.
 - Randomize the correct answer position (1–4).
 - Avoid duplicate questions.
 - Cover every important concept before adding expansion questions.
