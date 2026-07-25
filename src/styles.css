@@ -191,16 +191,33 @@ body {
 
 .bank-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  text-align: left;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
   border-radius: 12px;
   border: 1px solid #a8c8f8;
   background: #ffffff;
   color: var(--ink);
-  padding: 0.6rem 0.7rem;
+  padding: 0.45rem 0.45rem 0.45rem 0.7rem;
+  box-shadow: none;
+}
+
+.bank-item-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  padding: 0;
   font-size: 0.9rem;
   font-weight: 600;
+  box-shadow: none;
+}
+
+.bank-item-main:hover:not(:disabled) {
+  transform: none;
   box-shadow: none;
 }
 
@@ -224,6 +241,25 @@ body {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.bank-rename {
+  border-radius: 9px;
+  border: 1px solid #c3d8fb;
+  background: #f7fbff;
+  color: #3769ad;
+  min-width: 2.2rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.bank-rename:hover:not(:disabled) {
+  background: #eff6ff;
+  transform: none;
+  box-shadow: none;
+}
+
 .bank-delete {
   border-radius: 10px;
   border: 1px solid #f1a5af;
@@ -244,6 +280,17 @@ body {
   margin: 0.8rem 0 0;
   font-size: 0.88rem;
   color: #5c7192;
+}
+
+.workflow-copy,
+.empty-state-text {
+  margin: 0;
+  color: var(--subtle);
+  line-height: 1.55;
+}
+
+.empty-state-text {
+  font-style: italic;
 }
 
 textarea {
