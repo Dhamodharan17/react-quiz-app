@@ -71,6 +71,7 @@ function App() {
   const [error, setError] = useState('');
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeSource, setActiveSource] = useState('');
+  const [isBankOpen, setIsBankOpen] = useState(false);
 
   const parseInputText = (rawText) => {
     try {
@@ -96,6 +97,7 @@ function App() {
     setInputText(quizText);
     setActiveSource(quiz.path);
     parseInputText(quizText);
+    setIsBankOpen(false);
   };
 
   const scoreData = useMemo(() => {
@@ -154,8 +156,21 @@ function App() {
   return (
     <div className="page-shell">
       <div className="app-layout">
-        <aside className="card bank-sidebar">
-          <p className="eyebrow">Question Bank</p>
+        {isBankOpen && (
+          <button
+            className="bank-backdrop"
+            onClick={() => setIsBankOpen(false)}
+            aria-label="Close question bank"
+          />
+        )}
+
+        <aside className={`card bank-sidebar ${isBankOpen ? 'open' : ''}`}>
+          <div className="bank-sidebar-head">
+            <p className="eyebrow">Question Bank</p>
+            <button className="bank-close" onClick={() => setIsBankOpen(false)}>
+              Close
+            </button>
+          </div>
           <h2>Load Quiz JSON</h2>
           <p className="sidebar-note">
             Drop files in <strong>src/bank</strong>. They appear here automatically.
@@ -180,7 +195,12 @@ function App() {
 
         <div className="content-pane">
           <header className="hero">
-            <p className="eyebrow">JSON-powered learning workflow</p>
+            <div className="hero-top">
+              <p className="eyebrow">JSON-powered learning workflow</p>
+              <button className="bank-toggle" onClick={() => setIsBankOpen(true)}>
+                Open Question Bank
+              </button>
+            </div>
             <h1>React Quiz Application</h1>
             <p>
               Paste MCQs as JSON, parse instantly, answer all questions, and get score,

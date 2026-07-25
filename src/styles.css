@@ -35,10 +35,7 @@ body {
 }
 
 .app-layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 270px) 1fr;
-  gap: 1rem;
-  align-items: start;
+  position: relative;
 }
 
 .content-pane {
@@ -47,6 +44,14 @@ body {
 
 .hero {
   margin-bottom: 1.2rem;
+}
+
+.hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.35rem;
 }
 
 .eyebrow {
@@ -92,9 +97,56 @@ body {
 }
 
 .bank-sidebar {
-  position: sticky;
+  position: fixed;
   top: 1rem;
+  left: 1rem;
+  bottom: 1rem;
+  width: min(420px, calc(100vw - 2rem));
+  overflow: auto;
+  z-index: 20;
+  transform: translateX(-115%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.24s ease, opacity 0.2s ease;
   padding-bottom: 1rem;
+}
+
+.bank-sidebar.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bank-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.bank-close,
+.bank-toggle {
+  border-radius: 10px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.83rem;
+  letter-spacing: 0.02em;
+}
+
+.bank-close {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1px solid #9bbef2;
+}
+
+.bank-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  border: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  background: rgba(13, 33, 63, 0.26);
 }
 
 .sidebar-note {
@@ -311,12 +363,9 @@ button.ghost {
 }
 
 @media (max-width: 960px) {
-  .app-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .bank-sidebar {
-    position: static;
+  .hero-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 
   .grid-layout {
