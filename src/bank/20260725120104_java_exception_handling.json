@@ -1,0 +1,332 @@
+[
+  {
+    "question": "Interview question 1: Which statement about Default Exception Handler is most accurate?",
+    "options": [
+      "Incorrect concept B for Default Exception Handler",
+      "Incorrect concept A for Default Exception Handler",
+      "Correct statement about Default Exception Handler",
+      "Incorrect concept C for Default Exception Handler"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of Default Exception Handler based on Java exception handling."
+  },
+  {
+    "question": "What is the primary purpose of exception handling in Java?",
+    "options": [
+      "Improve JVM startup",
+      "Separate normal flow from error handling",
+      "Increase heap size",
+      "Prevent compilation"
+    ],
+    "answer": 2,
+    "explanation": "Exception handling allows graceful handling of runtime errors without mixing error logic with normal flow."
+  },
+  {
+    "question": "Interview question 3: Which statement about Types of Exception is most accurate?",
+    "options": [
+      "Correct statement about Types of Exception",
+      "Incorrect concept A for Types of Exception",
+      "Incorrect concept C for Types of Exception",
+      "Incorrect concept B for Types of Exception"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of Types of Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 4: Which statement about Customized Exception is most accurate?",
+    "options": [
+      "Incorrect concept A for Customized Exception",
+      "Incorrect concept B for Customized Exception",
+      "Correct statement about Customized Exception",
+      "Incorrect concept C for Customized Exception"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of Customized Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 5: Which statement about Try combinations is most accurate?",
+    "options": [
+      "Correct statement about Try combinations",
+      "Incorrect concept C for Try combinations",
+      "Incorrect concept B for Try combinations",
+      "Incorrect concept A for Try combinations"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of Try combinations based on Java exception handling."
+  },
+  {
+    "question": "Interview question 6: Which statement about throw keyword is most accurate?",
+    "options": [
+      "Incorrect concept A for throw keyword",
+      "Incorrect concept B for throw keyword",
+      "Incorrect concept C for throw keyword",
+      "Correct statement about throw keyword"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of throw keyword based on Java exception handling."
+  },
+  {
+    "question": "Interview question 7: Which statement about throws clause is most accurate?",
+    "options": [
+      "Incorrect concept A for throws clause",
+      "Incorrect concept B for throws clause",
+      "Correct statement about throws clause",
+      "Incorrect concept C for throws clause"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of throws clause based on Java exception handling."
+  },
+  {
+    "question": "Interview question 8: Which statement about Fully checked exception is most accurate?",
+    "options": [
+      "Incorrect concept A for Fully checked exception",
+      "Incorrect concept C for Fully checked exception",
+      "Incorrect concept B for Fully checked exception",
+      "Correct statement about Fully checked exception"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of Fully checked exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 9: Which statement about Try-with-resources is most accurate?",
+    "options": [
+      "Correct statement about Try-with-resources",
+      "Incorrect concept B for Try-with-resources",
+      "Incorrect concept A for Try-with-resources",
+      "Incorrect concept C for Try-with-resources"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of Try-with-resources based on Java exception handling."
+  },
+  {
+    "question": "Interview question 10: Which statement about Multiple catch blocks is most accurate?",
+    "options": [
+      "Incorrect concept C for Multiple catch blocks",
+      "Correct statement about Multiple catch blocks",
+      "Incorrect concept B for Multiple catch blocks",
+      "Incorrect concept A for Multiple catch blocks"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Multiple catch blocks based on Java exception handling."
+  },
+  {
+    "question": "Interview question 11: Which statement about Default Exception Handler is most accurate?",
+    "options": [
+      "Incorrect concept C for Default Exception Handler",
+      "Incorrect concept B for Default Exception Handler",
+      "Correct statement about Default Exception Handler",
+      "Incorrect concept A for Default Exception Handler"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of Default Exception Handler based on Java exception handling."
+  },
+  {
+    "question": "What is the primary purpose of exception handling in Java?",
+    "options": [
+      "Improve JVM startup",
+      "Separate normal flow from error handling",
+      "Increase heap size",
+      "Prevent compilation"
+    ],
+    "answer": 2,
+    "explanation": "Exception handling allows graceful handling of runtime errors without mixing error logic with normal flow."
+  },
+  {
+    "question": "Interview question 13: Which statement about Types of Exception is most accurate?",
+    "options": [
+      "Incorrect concept A for Types of Exception",
+      "Correct statement about Types of Exception",
+      "Incorrect concept C for Types of Exception",
+      "Incorrect concept B for Types of Exception"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Types of Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 14: Which statement about Customized Exception is most accurate?",
+    "options": [
+      "Incorrect concept C for Customized Exception",
+      "Incorrect concept B for Customized Exception",
+      "Correct statement about Customized Exception",
+      "Incorrect concept A for Customized Exception"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of Customized Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 15: Which statement about Try combinations is most accurate?",
+    "options": [
+      "Incorrect concept C for Try combinations",
+      "Correct statement about Try combinations",
+      "Incorrect concept A for Try combinations",
+      "Incorrect concept B for Try combinations"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Try combinations based on Java exception handling."
+  },
+  {
+    "question": "Interview question 16: Which statement about throw keyword is most accurate?",
+    "options": [
+      "Correct statement about throw keyword",
+      "Incorrect concept B for throw keyword",
+      "Incorrect concept C for throw keyword",
+      "Incorrect concept A for throw keyword"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of throw keyword based on Java exception handling."
+  },
+  {
+    "question": "Interview question 17: Which statement about throws clause is most accurate?",
+    "options": [
+      "Incorrect concept B for throws clause",
+      "Incorrect concept A for throws clause",
+      "Correct statement about throws clause",
+      "Incorrect concept C for throws clause"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of throws clause based on Java exception handling."
+  },
+  {
+    "question": "Interview question 18: Which statement about Fully checked exception is most accurate?",
+    "options": [
+      "Incorrect concept A for Fully checked exception",
+      "Incorrect concept B for Fully checked exception",
+      "Correct statement about Fully checked exception",
+      "Incorrect concept C for Fully checked exception"
+    ],
+    "answer": 3,
+    "explanation": "Tests understanding of Fully checked exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 19: Which statement about Try-with-resources is most accurate?",
+    "options": [
+      "Incorrect concept B for Try-with-resources",
+      "Incorrect concept C for Try-with-resources",
+      "Incorrect concept A for Try-with-resources",
+      "Correct statement about Try-with-resources"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of Try-with-resources based on Java exception handling."
+  },
+  {
+    "question": "Interview question 20: Which statement about Multiple catch blocks is most accurate?",
+    "options": [
+      "Incorrect concept A for Multiple catch blocks",
+      "Correct statement about Multiple catch blocks",
+      "Incorrect concept C for Multiple catch blocks",
+      "Incorrect concept B for Multiple catch blocks"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Multiple catch blocks based on Java exception handling."
+  },
+  {
+    "question": "Interview question 21: Which statement about Default Exception Handler is most accurate?",
+    "options": [
+      "Incorrect concept B for Default Exception Handler",
+      "Correct statement about Default Exception Handler",
+      "Incorrect concept C for Default Exception Handler",
+      "Incorrect concept A for Default Exception Handler"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Default Exception Handler based on Java exception handling."
+  },
+  {
+    "question": "What is the primary purpose of exception handling in Java?",
+    "options": [
+      "Improve JVM startup",
+      "Separate normal flow from error handling",
+      "Increase heap size",
+      "Prevent compilation"
+    ],
+    "answer": 2,
+    "explanation": "Exception handling allows graceful handling of runtime errors without mixing error logic with normal flow."
+  },
+  {
+    "question": "Interview question 23: Which statement about Types of Exception is most accurate?",
+    "options": [
+      "Incorrect concept C for Types of Exception",
+      "Correct statement about Types of Exception",
+      "Incorrect concept A for Types of Exception",
+      "Incorrect concept B for Types of Exception"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of Types of Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 24: Which statement about Customized Exception is most accurate?",
+    "options": [
+      "Incorrect concept A for Customized Exception",
+      "Incorrect concept C for Customized Exception",
+      "Incorrect concept B for Customized Exception",
+      "Correct statement about Customized Exception"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of Customized Exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 25: Which statement about Try combinations is most accurate?",
+    "options": [
+      "Correct statement about Try combinations",
+      "Incorrect concept A for Try combinations",
+      "Incorrect concept C for Try combinations",
+      "Incorrect concept B for Try combinations"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of Try combinations based on Java exception handling."
+  },
+  {
+    "question": "Interview question 26: Which statement about throw keyword is most accurate?",
+    "options": [
+      "Incorrect concept C for throw keyword",
+      "Correct statement about throw keyword",
+      "Incorrect concept A for throw keyword",
+      "Incorrect concept B for throw keyword"
+    ],
+    "answer": 2,
+    "explanation": "Tests understanding of throw keyword based on Java exception handling."
+  },
+  {
+    "question": "Interview question 27: Which statement about throws clause is most accurate?",
+    "options": [
+      "Incorrect concept B for throws clause",
+      "Incorrect concept C for throws clause",
+      "Incorrect concept A for throws clause",
+      "Correct statement about throws clause"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of throws clause based on Java exception handling."
+  },
+  {
+    "question": "Interview question 28: Which statement about Fully checked exception is most accurate?",
+    "options": [
+      "Correct statement about Fully checked exception",
+      "Incorrect concept A for Fully checked exception",
+      "Incorrect concept B for Fully checked exception",
+      "Incorrect concept C for Fully checked exception"
+    ],
+    "answer": 1,
+    "explanation": "Tests understanding of Fully checked exception based on Java exception handling."
+  },
+  {
+    "question": "Interview question 29: Which statement about Try-with-resources is most accurate?",
+    "options": [
+      "Incorrect concept A for Try-with-resources",
+      "Incorrect concept B for Try-with-resources",
+      "Incorrect concept C for Try-with-resources",
+      "Correct statement about Try-with-resources"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of Try-with-resources based on Java exception handling."
+  },
+  {
+    "question": "Interview question 30: Which statement about Multiple catch blocks is most accurate?",
+    "options": [
+      "Incorrect concept C for Multiple catch blocks",
+      "Incorrect concept A for Multiple catch blocks",
+      "Incorrect concept B for Multiple catch blocks",
+      "Correct statement about Multiple catch blocks"
+    ],
+    "answer": 4,
+    "explanation": "Tests understanding of Multiple catch blocks based on Java exception handling."
+  }
+]
