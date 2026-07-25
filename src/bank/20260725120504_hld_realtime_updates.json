@@ -1,0 +1,332 @@
+[
+  {
+    "question": "Which statement best describes Short Polling?",
+    "options": [
+      "Misconception about Short Polling A",
+      "Correct statement about Short Polling",
+      "Misconception about Short Polling B",
+      "Misconception about Short Polling C"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Short Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Long Polling?",
+    "options": [
+      "Misconception about Long Polling A",
+      "Misconception about Long Polling C",
+      "Correct statement about Long Polling",
+      "Misconception about Long Polling B"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Long Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes SSE?",
+    "options": [
+      "Misconception about SSE A",
+      "Misconception about SSE C",
+      "Correct statement about SSE",
+      "Misconception about SSE B"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, SSE has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes WebSockets?",
+    "options": [
+      "Misconception about WebSockets C",
+      "Misconception about WebSockets B",
+      "Misconception about WebSockets A",
+      "Correct statement about WebSockets"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, WebSockets has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Tradeoffs?",
+    "options": [
+      "Misconception about Tradeoffs A",
+      "Misconception about Tradeoffs C",
+      "Correct statement about Tradeoffs",
+      "Misconception about Tradeoffs B"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Tradeoffs has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Best Practices?",
+    "options": [
+      "Misconception about Best Practices B",
+      "Misconception about Best Practices A",
+      "Correct statement about Best Practices",
+      "Misconception about Best Practices C"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Best Practices has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Heartbeats?",
+    "options": [
+      "Correct statement about Heartbeats",
+      "Misconception about Heartbeats A",
+      "Misconception about Heartbeats C",
+      "Misconception about Heartbeats B"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Heartbeats has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Backpressure?",
+    "options": [
+      "Misconception about Backpressure B",
+      "Correct statement about Backpressure",
+      "Misconception about Backpressure C",
+      "Misconception about Backpressure A"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Backpressure has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Ordering?",
+    "options": [
+      "Misconception about Ordering B",
+      "Misconception about Ordering A",
+      "Correct statement about Ordering",
+      "Misconception about Ordering C"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Ordering has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Connection Management?",
+    "options": [
+      "Correct statement about Connection Management",
+      "Misconception about Connection Management A",
+      "Misconception about Connection Management C",
+      "Misconception about Connection Management B"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Connection Management has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Short Polling?",
+    "options": [
+      "Misconception about Short Polling C",
+      "Correct statement about Short Polling",
+      "Misconception about Short Polling A",
+      "Misconception about Short Polling B"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Short Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Long Polling?",
+    "options": [
+      "Correct statement about Long Polling",
+      "Misconception about Long Polling C",
+      "Misconception about Long Polling A",
+      "Misconception about Long Polling B"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Long Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes SSE?",
+    "options": [
+      "Misconception about SSE C",
+      "Misconception about SSE B",
+      "Correct statement about SSE",
+      "Misconception about SSE A"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, SSE has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes WebSockets?",
+    "options": [
+      "Misconception about WebSockets A",
+      "Misconception about WebSockets C",
+      "Misconception about WebSockets B",
+      "Correct statement about WebSockets"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, WebSockets has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Tradeoffs?",
+    "options": [
+      "Misconception about Tradeoffs B",
+      "Misconception about Tradeoffs C",
+      "Misconception about Tradeoffs A",
+      "Correct statement about Tradeoffs"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Tradeoffs has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Best Practices?",
+    "options": [
+      "Misconception about Best Practices B",
+      "Correct statement about Best Practices",
+      "Misconception about Best Practices A",
+      "Misconception about Best Practices C"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Best Practices has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Heartbeats?",
+    "options": [
+      "Correct statement about Heartbeats",
+      "Misconception about Heartbeats C",
+      "Misconception about Heartbeats A",
+      "Misconception about Heartbeats B"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Heartbeats has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Backpressure?",
+    "options": [
+      "Misconception about Backpressure B",
+      "Misconception about Backpressure C",
+      "Correct statement about Backpressure",
+      "Misconception about Backpressure A"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Backpressure has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Ordering?",
+    "options": [
+      "Misconception about Ordering C",
+      "Misconception about Ordering A",
+      "Correct statement about Ordering",
+      "Misconception about Ordering B"
+    ],
+    "answer": 3,
+    "explanation": "Based on the notes, Ordering has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Connection Management?",
+    "options": [
+      "Misconception about Connection Management B",
+      "Misconception about Connection Management C",
+      "Misconception about Connection Management A",
+      "Correct statement about Connection Management"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Connection Management has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Short Polling?",
+    "options": [
+      "Misconception about Short Polling C",
+      "Misconception about Short Polling A",
+      "Misconception about Short Polling B",
+      "Correct statement about Short Polling"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Short Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Long Polling?",
+    "options": [
+      "Correct statement about Long Polling",
+      "Misconception about Long Polling C",
+      "Misconception about Long Polling A",
+      "Misconception about Long Polling B"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Long Polling has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes SSE?",
+    "options": [
+      "Misconception about SSE A",
+      "Misconception about SSE C",
+      "Misconception about SSE B",
+      "Correct statement about SSE"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, SSE has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes WebSockets?",
+    "options": [
+      "Misconception about WebSockets B",
+      "Misconception about WebSockets A",
+      "Misconception about WebSockets C",
+      "Correct statement about WebSockets"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, WebSockets has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Tradeoffs?",
+    "options": [
+      "Misconception about Tradeoffs C",
+      "Correct statement about Tradeoffs",
+      "Misconception about Tradeoffs B",
+      "Misconception about Tradeoffs A"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Tradeoffs has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Best Practices?",
+    "options": [
+      "Misconception about Best Practices A",
+      "Correct statement about Best Practices",
+      "Misconception about Best Practices C",
+      "Misconception about Best Practices B"
+    ],
+    "answer": 2,
+    "explanation": "Based on the notes, Best Practices has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Heartbeats?",
+    "options": [
+      "Misconception about Heartbeats B",
+      "Misconception about Heartbeats A",
+      "Misconception about Heartbeats C",
+      "Correct statement about Heartbeats"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Heartbeats has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Backpressure?",
+    "options": [
+      "Correct statement about Backpressure",
+      "Misconception about Backpressure B",
+      "Misconception about Backpressure A",
+      "Misconception about Backpressure C"
+    ],
+    "answer": 1,
+    "explanation": "Based on the notes, Backpressure has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Ordering?",
+    "options": [
+      "Misconception about Ordering C",
+      "Misconception about Ordering A",
+      "Misconception about Ordering B",
+      "Correct statement about Ordering"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Ordering has specific trade-offs and should be chosen according to requirements."
+  },
+  {
+    "question": "Which statement best describes Connection Management?",
+    "options": [
+      "Misconception about Connection Management A",
+      "Misconception about Connection Management C",
+      "Misconception about Connection Management B",
+      "Correct statement about Connection Management"
+    ],
+    "answer": 4,
+    "explanation": "Based on the notes, Connection Management has specific trade-offs and should be chosen according to requirements."
+  }
+]
