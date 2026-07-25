@@ -1,0 +1,332 @@
+[
+  {
+    "question": "In a Short Polling architecture with a 5-second polling interval and 1,000,000 active users, what is the resulting throughput in Requests Per Second (RPS) reaching the server?",
+    "options": [
+      "1,000,000 RPS",
+      "500,000 RPS",
+      "200,000 RPS",
+      "100,000 RPS"
+    ],
+    "answer": 2,
+    "explanation": "With 1,000,000 users polling once every 5 seconds (1/5 req/sec/user = 0.2 req/sec/user), the calculation is 1,000,000 * 0.2 = 200,000 RPS."
+  },
+  {
+    "question": "What is the primary server-side architectural mechanism used in Long Polling to hold client connections efficiently without blocking worker threads?",
+    "options": [
+      "Synchronous while-loops checking database states periodically",
+      "Event-driven architecture using pub/sub buses like Kafka to suspend and resume handlers",
+      "Multi-threaded thread pooling allocating a dedicated OS thread per client request",
+      "Hardware-level CPU interrupt polling on incoming client packets"
+    ],
+    "answer": 1,
+    "explanation": "Long Polling avoids holding worker threads with busy loops; it leverages event-driven architecture (e.g., Kafka pub/sub) where handlers yield and wake up only on new events."
+  },
+  {
+    "question": "What HTTP response header and status code does a server return when successfully upgrading an HTTP connection to a WebSocket connection?",
+    "options": [
+      "101 Switching Protocols with Upgrade: websocket",
+      "200 OK with Content-Type: application/websocket",
+      "307 Temporary Redirect with Upgrade: ws",
+      "202 Accepted with Connection: persistent"
+    ],
+    "answer": 0,
+    "explanation": "The WebSocket handshake begins over HTTP and receives a 101 Switching Protocols response along with the Upgrade: websocket header from the server."
+  },
+  {
+    "question": "Which browser API is natively used on the client side to establish and listen to a Server-Sent Events (SSE) stream?",
+    "options": [
+      "XMLHttpRequest API",
+      "Fetch API with ReadableStream",
+      "EventSource API",
+      "WebSocket API"
+    ],
+    "answer": 2,
+    "explanation": "SSE utilizes the built-in browser EventSource API to connect to an endpoint and listen for incoming pushed text events."
+  },
+  {
+    "question": "What is the typical overhead size of a WebSocket frame header after the initial HTTP handshake is completed?",
+    "options": [
+      "512 bytes constant",
+      "2 to 16 bytes",
+      "128 to 256 bytes",
+      "1 to 2 kilobytes"
+    ],
+    "answer": 1,
+    "explanation": "WebSocket frame headers have a tiny overhead of 2 to 16 bytes, unlike verbose HTTP request headers."
+  },
+  {
+    "question": "Why is adding randomized 'Jitter' to an exponential backoff strategy essential when clients attempt to reconnect after a network failure?",
+    "options": [
+      "To compress the payload size during reconnection handshakes",
+      "To force clients to establish connection state with different server instances",
+      "To prevent the 'thundering herd' problem by staggering reconnection attempts across clients",
+      "To ensure TCP packets arrive in sequential order at the load balancer"
+    ],
+    "answer": 2,
+    "explanation": "Jitter randomizes the retry interval across clients so they do not all hit the server simultaneously, avoiding a thundering herd surge."
+  },
+  {
+    "question": "In a multi-node WebSocket architecture, how do Server 1 (hosting Alice) and Server 2 (hosting Bob) route real-time messages between the two connected users?",
+    "options": [
+      "Alice's client directly opens a second peer-to-peer TCP connection to Server 2",
+      "Server 1 polls Server 2's database table every second",
+      "The load balancer stores and forwards WebSocket frames across nodes",
+      "Server 1 uses a shared event bus (e.g., Kafka/Redis Pub/Sub) where servers subscribe to relevant channels"
+    ],
+    "answer": 3,
+    "explanation": "Because WebSocket connections are stateful, distributed instances use an inter-service message bus (pub/sub like Kafka) to publish and forward messages across servers."
+  },
+  {
+    "question": "Which Content-Type HTTP response header must a server return to initiate a valid Server-Sent Events (SSE) connection?",
+    "options": [
+      "multipart/x-mixed-replace",
+      "text/event-stream",
+      "application/json-stream",
+      "application/octet-stream"
+    ],
+    "answer": 1,
+    "explanation": "The SSE specification requires the server to return the 'text/event-stream' Content-Type header."
+  },
+  {
+    "question": "How should a real-time client handle out-of-order incoming messages received over a network connection?",
+    "options": [
+      "Rely entirely on TCP protocol layers, as application-level out-of-order delivery is impossible",
+      "Assign sequence numbers/IDs, buffer out-of-order items in a queue, and process them sequentially once gaps are filled",
+      "Request a complete re-transmission of all previous historical events from the database",
+      "Immediately discard all messages received after an out-of-order gap"
+    ],
+    "answer": 1,
+    "explanation": "Applications track message sequence numbers, buffer out-of-order payloads into a queue, and only deliver them to the UI once missing gaps arrive."
+  },
+  {
+    "question": "Under backpressure when a mobile client on a slow connection falls behind processing high-frequency stock updates, which strategy is appropriate if intermediate updates are non-critical?",
+    "options": [
+      "Buffer unlimited messages in memory on the server until the client catches up",
+      "Block the server thread until the mobile client consumes the backpressure queue",
+      "Drop intermediate price updates and aggregate messages into sending only the latest state",
+      "Downgrade the connection immediately to Short Polling"
+    ],
+    "answer": 2,
+    "explanation": "For non-critical stream data like stock tickers, intermediate updates can be dropped or coalesced into the latest state to relieve buffer queues."
+  },
+  {
+    "question": "What is the primary disadvantage of using Short Polling for applications requiring instant state updates?",
+    "options": [
+      "It requires specialized non-HTTP protocols and custom firewalls",
+      "It cannot work with standard load balancers",
+      "It prevents horizontal scaling of stateless web application tiers",
+      "It wastes CPU, network bandwidth, and database resources on empty server responses"
+    ],
+    "answer": 3,
+    "explanation": "Short polling frequently sends queries even when no new data exists, resulting in huge resource wastage across network, CPU, and database tiers."
+  },
+  {
+    "question": "What inherent feature does Server-Sent Events (SSE) provide natively in browser implementations via EventSource?",
+    "options": [
+      "Automatic reconnection, message resumption using event IDs, and event parsing",
+      "Zero-copy socket writing for low memory consumption",
+      "Binary data framing without base64 encoding",
+      "Full-duplex upstream message transmission"
+    ],
+    "answer": 0,
+    "explanation": "The EventSource browser API natively handles auto-reconnection, parsing incoming text streams, and tracking the last seen message ID for resumption."
+  },
+  {
+    "question": "Why is active health probing (heartbeats / ping-pong frames) required for persistent WebSocket connections?",
+    "options": [
+      "To flush the TCP write buffer on the client OS",
+      "To distinguish between a quiet connection with no traffic and a dead connection",
+      "To calculate network latency for UI frame rendering",
+      "To re-encrypt session tokens every few minutes"
+    ],
+    "answer": 1,
+    "explanation": "Idle or silently dead TCP connections look identical to quiet connections; periodic ping/pong heartbeats actively verify socket vitality."
+  },
+  {
+    "question": "What happens if an application requires strict message delivery (such as a messaging app like WhatsApp) and a client falls severely behind its backpressure queue limit?",
+    "options": [
+      "The server disconnects the client entirely so it can reconnect and re-sync missing range history cleanly",
+      "The server writes missing messages directly into client memory via WebRTC",
+      "The server drops intermediate payload frames and continues streaming",
+      "The client automatically switches the stream to Server-Sent Events"
+    ],
+    "answer": 0,
+    "explanation": "When every message is mandatory (e.g. chat) and backpressure limits are breached, the server terminates the connection, forcing the client to reconnect and perform a clean sync."
+  },
+  {
+    "question": "In Long Polling, what client-side race condition or network issue leads to ordering challenges?",
+    "options": [
+      "Browser caching of text/event-stream headers",
+      "DNS resolution failure during active socket streams",
+      "Delayed HTTP requests arriving out of sequence after connection timeouts or rapid re-initiations",
+      "Simultaneous TCP handshakes on the exact same port"
+    ],
+    "answer": 2,
+    "explanation": "If a delayed long-polling request arrives out of order due to transient network latency, server responses might be processed out of intended order by the client."
+  },
+  {
+    "question": "Which of the following is a key limitation of Server-Sent Events (SSE)?",
+    "options": [
+      "It does not support standard event listener callbacks on the client",
+      "It requires dedicated TCP ports separate from 80 and 443",
+      "It cannot pass through standard HTTP reverse proxies like Nginx",
+      "It is restricted to one-way server-to-client communication"
+    ],
+    "answer": 3,
+    "explanation": "SSE is strictly a unidirectional push protocol (server-to-client); upstream communication from client to server requires separate HTTP requests."
+  },
+  {
+    "question": "Why does Exponential Backoff cap its maximum wait interval (e.g., at 30 seconds)?",
+    "options": [
+      "To prevent the retry delay from growing infinitely long while still bounding reconnection traffic",
+      "To prevent the client integer timer from overflowing",
+      "To match the TCP keepalive default timeout",
+      "To allow the load balancer to clean up stale socket descriptors"
+    ],
+    "answer": 0,
+    "explanation": "Exponential backoff doubles retry delays (1s, 2s, 4s, 8s, 16s...), but a maximum cap (e.g. 30s) ensures recovery is attempted reasonably soon after system outages resolve."
+  },
+  {
+    "question": "How are custom events differentiated in a Server-Sent Events stream payload?",
+    "options": [
+      "By defining the 'event:' field in the plain text stream payload followed by data fields",
+      "By opening a distinct TCP stream for each event topic",
+      "By prefixing frames with a 4-byte binary identifier",
+      "By setting custom HTTP headers on each event chunk"
+    ],
+    "answer": 0,
+    "explanation": "In SSE formatting, custom event types are specified using 'event: <event_name>\\n' directly preceding the 'data: ...\\n' line."
+  },
+  {
+    "question": "What is a main operational challenge with stateful WebSocket connection registries when a server instance suddenly crashes?",
+    "options": [
+      "All Kafka topic partitions subscribed by that node are deleted",
+      "The connection registry becomes out of sync, holding ghost records for disconnected clients until cleanup",
+      "Client browsers crash due to unhandled socket errors",
+      "Client IP addresses are permanently blocked by the OS firewall"
+    ],
+    "answer": 1,
+    "explanation": "When a stateful WebSocket server crashes abruptly, routing registries still list those sockets as active until health checks/heartbeats purge the state."
+  },
+  {
+    "question": "Which real-time use case is BEST suited for Server-Sent Events (SSE) over WebSockets?",
+    "options": [
+      "A live sports score updates stream where clients only receive updates and send occasional HTTP POST actions",
+      "A collaborative document editor (e.g., Google Docs) with simultaneous typing",
+      "A multiplayer FPS game requiring 60Hz user inputs and state synchronization",
+      "A peer-to-peer audio calling application"
+    ],
+    "answer": 0,
+    "explanation": "Live scores involve high-frequency server-to-client updates with minimal client input, making SSE lightweight, simple, and ideal."
+  },
+  {
+    "question": "What design trade-off occurs when choosing between Short Polling and WebSockets for real-time capabilities?",
+    "options": [
+      "Short Polling offers implementation simplicity and stateless scaling at the cost of high latency or resource waste",
+      "WebSockets reduce client implementation complexity compared to HTTP polling",
+      "Short Polling provides bidirectional streaming at the cost of zero server state",
+      "WebSockets offer lower latency but eliminate the need for centralized pub/sub brokers"
+    ],
+    "answer": 0,
+    "explanation": "Short polling is simple and stateless but trades off efficiency/latency; WebSockets offer low latency and high capability but increase server state and complexity."
+  },
+  {
+    "question": "What limitation does HTTP/1.1 impose on Server-Sent Events (SSE) connection handling in standard web browsers?",
+    "options": [
+      "HTTP/1.1 forces all SSE text streams to be compressed with GZIP",
+      "HTTP/1.1 restricts browsers to a maximum of 6 concurrent persistent connections per domain",
+      "HTTP/1.1 disallows long-lived chunked transfer encoding",
+      "HTTP/1.1 drops connections automatically after 60 seconds of inactivity"
+    ],
+    "answer": 1,
+    "explanation": "Under HTTP/1.1, browsers enforce a strict limit of 6 open connections per domain, which can quickly exhaust available slots across multiple browser tabs; HTTP/2 resolves this via multiplexing."
+  },
+  {
+    "question": "When scaling WebSockets across a fleet of reverse proxies (like Nginx or HAProxy), which setting is critical to prevent premature connection dropouts?",
+    "options": [
+      "Disabling TCP keepalive packets on edge proxies",
+      "Enabling HTTP response body caching",
+      "Forcing HTTP/1.0 protocol fallback",
+      "Increasing proxy read/write execution timeouts for persistent connections beyond standard HTTP timeouts"
+    ],
+    "answer": 3,
+    "explanation": "Reverse proxies typically close idle HTTP connections after 30\u201360 seconds; proxy read/write timeouts must be raised to maintain long-lived WebSocket connections."
+  },
+  {
+    "question": "In a WebRTC real-time architecture, what is the role of a STUN server?",
+    "options": [
+      "To transcode high-definition video frames into lower resolutions",
+      "To relay audio/video media streams between peers when direct connection fails",
+      "To store room state and user presence in a persistent database",
+      "To allow clients behind NATs to discover their own public IP address and port mapping"
+    ],
+    "answer": 3,
+    "explanation": "STUN (Session Traversal Utilities for NAT) allows endpoints behind NATs to discover their public-facing IP address and port for peer-to-peer connection establishment."
+  },
+  {
+    "question": "What role does a TURN server play in a WebRTC connection when direct peer-to-peer communication is blocked by strict firewalls or symmetric NATs?",
+    "options": [
+      "It compresses video streams using H.264 codecs",
+      "It acts as an intermediate relay server that forwards media traffic between peers",
+      "It translates WebSockets frames into Server-Sent Events",
+      "It negotiates encryption keys using TLS handshakes"
+    ],
+    "answer": 1,
+    "explanation": "When NAT or firewall restrictions prevent direct peer-to-peer connection, TURN (Traversal Using Relays around NAT) acts as a media relay server."
+  },
+  {
+    "question": "How does HTTP/2 Server Push differ fundamentally from Server-Sent Events (SSE)?",
+    "options": [
+      "HTTP/2 Server Push allows the server to speculatively send cacheable assets (CSS/JS) for client requests, whereas SSE streams application data to JS event handlers",
+      "HTTP/2 Server Push provides bidirectional socket framing for chat applications",
+      "SSE requires WebSockets protocol framing inside HTTP/2 frames",
+      "HTTP/2 Server Push is an event-driven pub/sub queue built into browsers"
+    ],
+    "answer": 0,
+    "explanation": "HTTP/2 Server Push delivers sub-resources directly into the browser cache ahead of client request parsing, whereas SSE streams continuous event messages parsed by application JavaScript."
+  },
+  {
+    "question": "When implementing distributed presence tracking (e.g. Online/Offline status) in a large WebSocket cluster, which data structure in Redis is commonly utilized for efficient heartbeat expiration?",
+    "options": [
+      "Redis Streams with consumer groups",
+      "Redis Keys with TTL or Sorted Sets (ZSET) scored by heartbeat timestamps",
+      "Redis Circular Linked Lists",
+      "Redis HyperLogLog data structures"
+    ],
+    "answer": 1,
+    "explanation": "Redis keys with Time-To-Live (TTL) auto-expire when heartbeats stop, or Sorted Sets (ZSET) with timestamp scores allow efficient query-based pruning of stale users."
+  },
+  {
+    "question": "What advantage does using gRPC streaming (over HTTP/2) offer over traditional WebSockets for inter-microservice real-time communication?",
+    "options": [
+      "gRPC streams support browser EventSource out of the box without polyfills",
+      "Strong typed schema definition via Protocol Buffers and native multiplexing over HTTP/2",
+      "gRPC streams eliminate network round-trip latency entirely",
+      "gRPC avoids all TCP handshake overhead"
+    ],
+    "answer": 1,
+    "explanation": "gRPC streaming leverages Protobuf schemas for strong contract typing, high binary serialization performance, and native HTTP/2 multiplexed streams."
+  },
+  {
+    "question": "Which HTTP header is sent by a client initiating an SSE connection to tell the server which message ID it last received during a reconnection attempt?",
+    "options": [
+      "Range: events=...",
+      "X-Resume-Offset",
+      "If-Match",
+      "Last-Event-ID"
+    ],
+    "answer": 3,
+    "explanation": "When an SSE connection drops, the browser automatically sends the 'Last-Event-ID' HTTP header on reconnection so the server can re-send missed messages."
+  },
+  {
+    "question": "What is the primary motivation for using sticky sessions (session affinity) at the load balancer level for long-polling applications?",
+    "options": [
+      "To force clients to re-use SSL/TLS certificates across domains",
+      "To prevent cross-site scripting (XSS) attacks on HTTP headers",
+      "To route successive poll requests from a client to the same server node holding their event context or in-memory state",
+      "To reduce network bandwidth by enabling socket compression"
+    ],
+    "answer": 2,
+    "explanation": "Sticky sessions ensure subsequent long-polling HTTP requests reach the specific server node where the client's pending state or waiting channel exists."
+  }
+]

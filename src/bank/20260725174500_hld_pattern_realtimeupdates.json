@@ -1,0 +1,332 @@
+[
+  {
+    "question": "Why is traditional HTTP insufficient for true real-time updates?",
+    "options": [
+      "The server cannot push updates after the response unless the client requests again.",
+      "HTTP cannot transmit JSON.",
+      "HTTP only supports binary protocols.",
+      "HTTP always requires WebSockets."
+    ],
+    "answer": 1,
+    "explanation": "Traditional request-response closes the connection, so updates require another request."
+  },
+  {
+    "question": "What is the primary tradeoff in short polling?",
+    "options": [
+      "CPU vs GPU",
+      "Latency vs resource consumption",
+      "Bandwidth vs encryption",
+      "Availability vs consistency"
+    ],
+    "answer": 2,
+    "explanation": "Frequent polling reduces latency but wastes server resources."
+  },
+  {
+    "question": "Interview: Which statement about SSE is MOST accurate?",
+    "options": [
+      "SSE completely eliminates distributed systems challenges.",
+      "SSE always scales better than every other approach.",
+      "SSE requires no failure handling.",
+      "SSE is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "SSE has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about WebSockets is MOST accurate?",
+    "options": [
+      "WebSockets completely eliminates distributed systems challenges.",
+      "WebSockets requires no failure handling.",
+      "WebSockets always scales better than every other approach.",
+      "WebSockets is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "WebSockets has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Heartbeats is MOST accurate?",
+    "options": [
+      "Heartbeats requires no failure handling.",
+      "Heartbeats always scales better than every other approach.",
+      "Heartbeats completely eliminates distributed systems challenges.",
+      "Heartbeats is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "Heartbeats has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Backpressure is MOST accurate?",
+    "options": [
+      "Backpressure always scales better than every other approach.",
+      "Backpressure requires no failure handling.",
+      "Backpressure is used appropriately according to its design tradeoffs.",
+      "Backpressure completely eliminates distributed systems challenges."
+    ],
+    "answer": 3,
+    "explanation": "Backpressure has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Ordering is MOST accurate?",
+    "options": [
+      "Ordering completely eliminates distributed systems challenges.",
+      "Ordering always scales better than every other approach.",
+      "Ordering requires no failure handling.",
+      "Ordering is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "Ordering has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Jitter is MOST accurate?",
+    "options": [
+      "Jitter completely eliminates distributed systems challenges.",
+      "Jitter always scales better than every other approach.",
+      "Jitter requires no failure handling.",
+      "Jitter is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "Jitter has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Kafka is MOST accurate?",
+    "options": [
+      "Kafka requires no failure handling.",
+      "Kafka is used appropriately according to its design tradeoffs.",
+      "Kafka completely eliminates distributed systems challenges.",
+      "Kafka always scales better than every other approach."
+    ],
+    "answer": 2,
+    "explanation": "Kafka has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about 101 Switching Protocol is MOST accurate?",
+    "options": [
+      "101 Switching Protocol completely eliminates distributed systems challenges.",
+      "101 Switching Protocol is used appropriately according to its design tradeoffs.",
+      "101 Switching Protocol requires no failure handling.",
+      "101 Switching Protocol always scales better than every other approach."
+    ],
+    "answer": 2,
+    "explanation": "101 Switching Protocol has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about EventSource is MOST accurate?",
+    "options": [
+      "EventSource always scales better than every other approach.",
+      "EventSource is used appropriately according to its design tradeoffs.",
+      "EventSource requires no failure handling.",
+      "EventSource completely eliminates distributed systems challenges."
+    ],
+    "answer": 2,
+    "explanation": "EventSource has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about text/event-stream is MOST accurate?",
+    "options": [
+      "text/event-stream completely eliminates distributed systems challenges.",
+      "text/event-stream requires no failure handling.",
+      "text/event-stream always scales better than every other approach.",
+      "text/event-stream is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "text/event-stream has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Sequence numbers is MOST accurate?",
+    "options": [
+      "Sequence numbers is used appropriately according to its design tradeoffs.",
+      "Sequence numbers always scales better than every other approach.",
+      "Sequence numbers completely eliminates distributed systems challenges.",
+      "Sequence numbers requires no failure handling."
+    ],
+    "answer": 1,
+    "explanation": "Sequence numbers has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Connection registry is MOST accurate?",
+    "options": [
+      "Connection registry requires no failure handling.",
+      "Connection registry is used appropriately according to its design tradeoffs.",
+      "Connection registry completely eliminates distributed systems challenges.",
+      "Connection registry always scales better than every other approach."
+    ],
+    "answer": 2,
+    "explanation": "Connection registry has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Horizontal scaling is MOST accurate?",
+    "options": [
+      "Horizontal scaling always scales better than every other approach.",
+      "Horizontal scaling requires no failure handling.",
+      "Horizontal scaling is used appropriately according to its design tradeoffs.",
+      "Horizontal scaling completely eliminates distributed systems challenges."
+    ],
+    "answer": 3,
+    "explanation": "Horizontal scaling has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Stateful is MOST accurate?",
+    "options": [
+      "Stateful is used appropriately according to its design tradeoffs.",
+      "Stateful completely eliminates distributed systems challenges.",
+      "Stateful requires no failure handling.",
+      "Stateful always scales better than every other approach."
+    ],
+    "answer": 1,
+    "explanation": "Stateful has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Stateless is MOST accurate?",
+    "options": [
+      "Stateless always scales better than every other approach.",
+      "Stateless completely eliminates distributed systems challenges.",
+      "Stateless requires no failure handling.",
+      "Stateless is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "Stateless has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Persistent connection is MOST accurate?",
+    "options": [
+      "Persistent connection requires no failure handling.",
+      "Persistent connection completely eliminates distributed systems challenges.",
+      "Persistent connection is used appropriately according to its design tradeoffs.",
+      "Persistent connection always scales better than every other approach."
+    ],
+    "answer": 3,
+    "explanation": "Persistent connection has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about HTTP is MOST accurate?",
+    "options": [
+      "HTTP completely eliminates distributed systems challenges.",
+      "HTTP requires no failure handling.",
+      "HTTP always scales better than every other approach.",
+      "HTTP is used appropriately according to its design tradeoffs."
+    ],
+    "answer": 4,
+    "explanation": "HTTP has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Event-driven is MOST accurate?",
+    "options": [
+      "Event-driven is used appropriately according to its design tradeoffs.",
+      "Event-driven completely eliminates distributed systems challenges.",
+      "Event-driven requires no failure handling.",
+      "Event-driven always scales better than every other approach."
+    ],
+    "answer": 1,
+    "explanation": "Event-driven has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Short Polling is MOST accurate?",
+    "options": [
+      "Short Polling completely eliminates distributed systems challenges.",
+      "Short Polling always scales better than every other approach.",
+      "Short Polling is used appropriately according to its design tradeoffs.",
+      "Short Polling requires no failure handling."
+    ],
+    "answer": 3,
+    "explanation": "Short Polling has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Long Polling is MOST accurate?",
+    "options": [
+      "Long Polling completely eliminates distributed systems challenges.",
+      "Long Polling is used appropriately according to its design tradeoffs.",
+      "Long Polling always scales better than every other approach.",
+      "Long Polling requires no failure handling."
+    ],
+    "answer": 2,
+    "explanation": "Long Polling has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about SSE is MOST accurate?",
+    "options": [
+      "SSE is used appropriately according to its design tradeoffs.",
+      "SSE completely eliminates distributed systems challenges.",
+      "SSE requires no failure handling.",
+      "SSE always scales better than every other approach."
+    ],
+    "answer": 1,
+    "explanation": "SSE has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about WebSockets is MOST accurate?",
+    "options": [
+      "WebSockets is used appropriately according to its design tradeoffs.",
+      "WebSockets completely eliminates distributed systems challenges.",
+      "WebSockets always scales better than every other approach.",
+      "WebSockets requires no failure handling."
+    ],
+    "answer": 1,
+    "explanation": "WebSockets has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Heartbeats is MOST accurate?",
+    "options": [
+      "Heartbeats always scales better than every other approach.",
+      "Heartbeats is used appropriately according to its design tradeoffs.",
+      "Heartbeats completely eliminates distributed systems challenges.",
+      "Heartbeats requires no failure handling."
+    ],
+    "answer": 2,
+    "explanation": "Heartbeats has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Backpressure is MOST accurate?",
+    "options": [
+      "Backpressure completely eliminates distributed systems challenges.",
+      "Backpressure always scales better than every other approach.",
+      "Backpressure is used appropriately according to its design tradeoffs.",
+      "Backpressure requires no failure handling."
+    ],
+    "answer": 3,
+    "explanation": "Backpressure has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Ordering is MOST accurate?",
+    "options": [
+      "Ordering requires no failure handling.",
+      "Ordering is used appropriately according to its design tradeoffs.",
+      "Ordering always scales better than every other approach.",
+      "Ordering completely eliminates distributed systems challenges."
+    ],
+    "answer": 2,
+    "explanation": "Ordering has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Jitter is MOST accurate?",
+    "options": [
+      "Jitter always scales better than every other approach.",
+      "Jitter is used appropriately according to its design tradeoffs.",
+      "Jitter completely eliminates distributed systems challenges.",
+      "Jitter requires no failure handling."
+    ],
+    "answer": 2,
+    "explanation": "Jitter has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about Kafka is MOST accurate?",
+    "options": [
+      "Kafka is used appropriately according to its design tradeoffs.",
+      "Kafka always scales better than every other approach.",
+      "Kafka completely eliminates distributed systems challenges.",
+      "Kafka requires no failure handling."
+    ],
+    "answer": 1,
+    "explanation": "Kafka has advantages and tradeoffs; no single approach is universally best."
+  },
+  {
+    "question": "Interview: Which statement about 101 Switching Protocol is MOST accurate?",
+    "options": [
+      "101 Switching Protocol is used appropriately according to its design tradeoffs.",
+      "101 Switching Protocol completely eliminates distributed systems challenges.",
+      "101 Switching Protocol always scales better than every other approach.",
+      "101 Switching Protocol requires no failure handling."
+    ],
+    "answer": 1,
+    "explanation": "101 Switching Protocol has advantages and tradeoffs; no single approach is universally best."
+  }
+]
