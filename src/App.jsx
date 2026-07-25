@@ -1,27 +1,123 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { supabase } from './lib/supabaseClient';
+
 const bankQuizzesByPath = import.meta.glob('./bank/**/*.json', {
   eager: true,
   import: 'default',
 });
 
-const BANK_QUIZZES = Object.entries(bankQuizzesByPath)
+const LOCAL_BANK_KEY = 'quiz-bank-v1';
+
+const parseTimestampFromFileName = (fileName) => {
+  const match = fileName.match(/^(\d{14})[_-]/);
+  if (!match) return null;
+
+  const stamp = match[1];
+  const year = Number(stamp.slice(0, 4));
+  const month = Number(stamp.slice(4, 6)) - 1;
+  const day = Number(stamp.slice(6, 8));
+  const hour = Number(stamp.slice(8, 10));
+  const minute = Number(stamp.slice(10, 12));
+  const second = Number(stamp.slice(12, 14));
+
+  const parsedDate = new Date(year, month, day, hour, minute, second);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+};
+
+const parseIsoDate = (value) => {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatTimestampForDisplay = (dateValue) => {
+  if (!dateValue) return '';
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(dateValue);
+};
+
+const buildLabelFromFileName = (fileName) =>
+  fileName
+    .replace(/\.json$/i, '')
+    .replace(/^\d{14}[_-]/, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const sortByNewest = (a, b) => {
+  const aTime = parseIsoDate(a.createdAt)?.getTime() ?? 0;
+  const bTime = parseIsoDate(b.createdAt)?.getTime() ?? 0;
+  if (bTime !== aTime) return bTime - aTime;
+  return b.fileName.localeCompare(a.fileName);
+};
+
+const SEED_BANK_QUIZZES = Object.entries(bankQuizzesByPath)
   .map(([path, data]) => {
     const fileName = path.split('/').pop() || path;
-    const label = fileName
-      .replace(/\.json$/i, '')
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const timestamp = parseTimestampFromFileName(fileName);
+    const label = buildLabelFromFileName(fileName);
 
     return {
+      id: path,
       path,
       fileName,
       label,
+      createdAt: timestamp?.toISOString() ?? new Date(0).toISOString(),
+      formattedTime: formatTimestampForDisplay(timestamp),
       data,
     };
   })
-  .sort((a, b) => b.fileName.localeCompare(a.fileName));
+  .sort(sortByNewest);
 
-const SAMPLE_JSON = JSON.stringify(BANK_QUIZZES[0]?.data ?? [], null, 2);
+const SAMPLE_JSON = JSON.stringify(SEED_BANK_QUIZZES[0]?.data ?? [], null, 2);
+
+const mapLocalRecordToQuiz = (record) => {
+  const createdDate = parseIsoDate(record.createdAt);
+  return {
+    id: record.id,
+    path: record.id,
+    fileName: record.fileName || `${record.name || 'quiz'}.json`,
+    label: record.name || buildLabelFromFileName(record.fileName || 'quiz.json'),
+    createdAt: record.createdAt,
+    formattedTime: formatTimestampForDisplay(createdDate),
+    data: record.quizJson,
+  };
+};
+
+const loadLocalBank = () => {
+  if (typeof window === 'undefined') return SEED_BANK_QUIZZES;
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_BANK_KEY);
+    if (!raw) return SEED_BANK_QUIZZES;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return SEED_BANK_QUIZZES;
+
+    const mapped = parsed
+      .filter((item) => item && Array.isArray(item.quizJson))
+      .map(mapLocalRecordToQuiz)
+      .sort(sortByNewest);
+
+    return mapped.length > 0 ? mapped : SEED_BANK_QUIZZES;
+  } catch {
+    return SEED_BANK_QUIZZES;
+  }
+};
+
+const saveLocalBank = (quizzes) => {
+  if (typeof window === 'undefined') return;
+  const records = quizzes.map((quiz) => ({
+    id: quiz.id,
+    name: quiz.label,
+    fileName: quiz.fileName,
+    createdAt: quiz.createdAt,
+    quizJson: quiz.data,
+  }));
+  window.localStorage.setItem(LOCAL_BANK_KEY, JSON.stringify(records));
+};
 
 const parseQuestions = (rawInput) => {
   const parsed = JSON.parse(rawInput);
@@ -65,12 +161,69 @@ const parseQuestions = (rawInput) => {
 
 function App() {
   const [inputText, setInputText] = useState(SAMPLE_JSON);
+  const [bankQuizzes, setBankQuizzes] = useState(SEED_BANK_QUIZZES);
+  const [storageMode, setStorageMode] = useState(supabase ? 'cloud' : 'local');
+  const [bankNotice, setBankNotice] = useState('');
+  const [isBankBusy, setIsBankBusy] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeSource, setActiveSource] = useState('');
   const [isBankOpen, setIsBankOpen] = useState(false);
+  const importFileRef = useRef(null);
+
+  useEffect(() => {
+    const hydrateBank = async () => {
+      if (!supabase) {
+        const localQuizzes = loadLocalBank();
+        setBankQuizzes(localQuizzes);
+        setStorageMode('local');
+        return;
+      }
+
+      setIsBankBusy(true);
+      const { data, error: fetchError } = await supabase
+        .from('quiz_banks')
+        .select('id, name, quiz_json, created_at')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        const localQuizzes = loadLocalBank();
+        setBankQuizzes(localQuizzes);
+        setStorageMode('local');
+        setBankNotice('Supabase unavailable. Using local browser storage.');
+        setIsBankBusy(false);
+        return;
+      }
+
+      const cloudQuizzes = (data || []).map((item) => {
+        const createdDate = parseIsoDate(item.created_at);
+        const fileName = `${item.name || 'quiz'}.json`;
+        return {
+          id: item.id,
+          path: item.id,
+          fileName,
+          label: item.name || buildLabelFromFileName(fileName),
+          createdAt: item.created_at,
+          formattedTime: formatTimestampForDisplay(createdDate),
+          data: item.quiz_json,
+        };
+      });
+
+      setBankQuizzes(cloudQuizzes);
+      setStorageMode('cloud');
+      setBankNotice('');
+      setIsBankBusy(false);
+    };
+
+    hydrateBank();
+  }, []);
+
+  const resetEditorToLatest = () => {
+    const latest = bankQuizzes[0]?.data ?? [];
+    setInputText(JSON.stringify(latest, null, 2));
+  };
 
   const parseInputText = (rawText) => {
     try {
@@ -101,9 +254,149 @@ function App() {
   const loadBankQuiz = (quiz) => {
     const quizText = JSON.stringify(quiz.data, null, 2);
     setInputText(quizText);
-    setActiveSource(quiz.path);
+    setActiveSource(quiz.id);
     parseInputText(quizText);
     setIsBankOpen(false);
+  };
+
+  const saveQuizToBank = async (quizData, proposedName) => {
+    const fallbackStamp = new Date()
+      .toISOString()
+      .replace(/[-:TZ.]/g, '')
+      .slice(0, 14);
+
+    const sanitized = (proposedName || `quiz_${fallbackStamp}`)
+      .toLowerCase()
+      .replace(/\.json$/i, '')
+      .replace(/[^a-z0-9_\- ]+/g, '')
+      .trim()
+      .replace(/\s+/g, '_');
+
+    const label = sanitized || `quiz_${fallbackStamp}`;
+    const createdAt = new Date().toISOString();
+
+    setIsBankBusy(true);
+    if (supabase && storageMode === 'cloud') {
+      const { data, error: insertError } = await supabase
+        .from('quiz_banks')
+        .insert({
+          name: label,
+          quiz_json: quizData,
+        })
+        .select('id, name, quiz_json, created_at')
+        .single();
+
+      if (insertError) {
+        setBankNotice(insertError.message);
+        setIsBankBusy(false);
+        return false;
+      }
+
+      const createdDate = parseIsoDate(data.created_at);
+      const newQuiz = {
+        id: data.id,
+        path: data.id,
+        fileName: `${data.name}.json`,
+        label: data.name,
+        createdAt: data.created_at,
+        formattedTime: formatTimestampForDisplay(createdDate),
+        data: data.quiz_json,
+      };
+
+      setBankQuizzes((previous) => [newQuiz, ...previous].sort(sortByNewest));
+      setBankNotice('Saved to Supabase.');
+      setIsBankBusy(false);
+      return true;
+    }
+
+    const id =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    const localQuiz = {
+      id,
+      path: id,
+      fileName: `${label}.json`,
+      label,
+      createdAt,
+      formattedTime: formatTimestampForDisplay(parseIsoDate(createdAt)),
+      data: quizData,
+    };
+
+    setBankQuizzes((previous) => {
+      const next = [localQuiz, ...previous].sort(sortByNewest);
+      saveLocalBank(next);
+      return next;
+    });
+
+    setBankNotice('Saved to local browser storage.');
+    setIsBankBusy(false);
+    return true;
+  };
+
+  const addCurrentJsonToBank = async () => {
+    let quizData;
+    try {
+      parseQuestions(inputText);
+      quizData = JSON.parse(inputText);
+    } catch {
+      setBankNotice('Current JSON is invalid. Fix it before saving.');
+      return;
+    }
+
+    const suggestedName = window.prompt('Enter quiz name (topic_subtopic)', 'quiz_topic');
+    if (suggestedName === null) return;
+
+    await saveQuizToBank(quizData, suggestedName);
+  };
+
+  const importJsonFile = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const rawText = await file.text();
+    let quizData;
+
+    try {
+      parseQuestions(rawText);
+      quizData = JSON.parse(rawText);
+    } catch {
+      setBankNotice('Imported file has invalid quiz JSON format.');
+      event.target.value = '';
+      return;
+    }
+
+    await saveQuizToBank(quizData, file.name.replace(/\.json$/i, ''));
+    event.target.value = '';
+  };
+
+  const deleteBankQuiz = async (quiz) => {
+    const shouldDelete = window.confirm(`Delete quiz \"${quiz.label}\"?`);
+    if (!shouldDelete) return;
+
+    setIsBankBusy(true);
+    if (supabase && storageMode === 'cloud') {
+      const { error: deleteError } = await supabase.from('quiz_banks').delete().eq('id', quiz.id);
+      if (deleteError) {
+        setBankNotice(deleteError.message);
+        setIsBankBusy(false);
+        return;
+      }
+    }
+
+    setBankQuizzes((previous) => {
+      const next = previous.filter((item) => item.id !== quiz.id);
+      if (storageMode === 'local') saveLocalBank(next);
+      return next;
+    });
+
+    if (activeSource === quiz.id) {
+      setActiveSource('');
+    }
+
+    setBankNotice(storageMode === 'cloud' ? 'Deleted from Supabase.' : 'Deleted locally.');
+    setIsBankBusy(false);
   };
 
   const scoreData = useMemo(() => {
@@ -179,23 +472,57 @@ function App() {
           </div>
           <h2>Load Quiz JSON</h2>
           <p className="sidebar-note">
-            Drop files in <strong>src/bank</strong>. They appear here automatically.
+            Mode: <strong>{storageMode === 'cloud' ? 'Supabase Cloud' : 'Local Browser'}</strong>
           </p>
 
+          <div className="bank-actions">
+            <button className="bank-action" onClick={addCurrentJsonToBank} disabled={isBankBusy}>
+              Save Current JSON
+            </button>
+            <button
+              className="bank-action ghost"
+              onClick={() => importFileRef.current?.click()}
+              disabled={isBankBusy}
+            >
+              Import JSON File
+            </button>
+            <input
+              ref={importFileRef}
+              className="bank-file-input"
+              type="file"
+              accept=".json,application/json"
+              onChange={importJsonFile}
+            />
+          </div>
+
+          {bankNotice && <p className="bank-notice">{bankNotice}</p>}
+
           <div className="bank-list" role="list" aria-label="JSON bank files">
-            {BANK_QUIZZES.map((quiz) => (
-              <button
-                key={quiz.path}
-                className={`bank-item ${activeSource === quiz.path ? 'active' : ''}`}
-                onClick={() => loadBankQuiz(quiz)}
+            {bankQuizzes.map((quiz) => (
+              <div
+                key={quiz.id}
+                className={`bank-row ${activeSource === quiz.id ? 'active' : ''}`}
               >
-                {quiz.label}
-              </button>
+                <button className="bank-item" onClick={() => loadBankQuiz(quiz)}>
+                  <span className="bank-item-title">{quiz.label}</span>
+                  {quiz.formattedTime && (
+                    <span className="bank-item-time">{quiz.formattedTime}</span>
+                  )}
+                </button>
+                <button
+                  className="bank-delete"
+                  onClick={() => deleteBankQuiz(quiz)}
+                  disabled={isBankBusy}
+                  aria-label={`Delete ${quiz.label}`}
+                >
+                  Delete
+                </button>
+              </div>
             ))}
           </div>
 
-          {BANK_QUIZZES.length === 0 && (
-            <p className="sidebar-empty">No files yet. Add .json files inside src/bank.</p>
+          {bankQuizzes.length === 0 && (
+            <p className="sidebar-empty">No quizzes yet. Save current JSON or import one.</p>
           )}
         </aside>
 
@@ -225,8 +552,8 @@ function App() {
               />
               <div className="actions-row">
                 <button onClick={parseInput}>Parse</button>
-                <button className="ghost" onClick={() => setInputText(SAMPLE_JSON)}>
-                  Reset Editor to Sample
+                <button className="ghost" onClick={resetEditorToLatest}>
+                  Reset Editor to Latest
                 </button>
               </div>
               {error && <p className="error-text">{error}</p>}

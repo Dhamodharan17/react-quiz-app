@@ -155,13 +155,44 @@ body {
   color: var(--subtle);
 }
 
+.bank-actions {
+  margin-top: 0.8rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.bank-action {
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.84rem;
+}
+
+.bank-file-input {
+  display: none;
+}
+
+.bank-notice {
+  margin: 0.7rem 0 0;
+  font-size: 0.82rem;
+  color: #2b5fa8;
+}
+
 .bank-list {
   margin-top: 0.9rem;
   display: grid;
   gap: 0.45rem;
 }
 
+.bank-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.4rem;
+}
+
 .bank-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   text-align: left;
   border-radius: 12px;
   border: 1px solid #a8c8f8;
@@ -170,12 +201,43 @@ body {
   padding: 0.6rem 0.7rem;
   font-size: 0.9rem;
   font-weight: 600;
+  box-shadow: none;
 }
 
-.bank-item.active {
+.bank-item-title {
+  line-height: 1.2;
+}
+
+.bank-item-time {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4f6f98;
+}
+
+.bank-row.active .bank-item {
   background: linear-gradient(120deg, #2f7df6, #5da3ff);
   color: #ffffff;
   border-color: #2f7df6;
+}
+
+.bank-row.active .bank-item-time {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.bank-delete {
+  border-radius: 10px;
+  border: 1px solid #f1a5af;
+  background: #fff4f6;
+  color: #b23f51;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.bank-delete:hover:not(:disabled) {
+  background: #ffe8ec;
+  box-shadow: none;
 }
 
 .sidebar-empty {
