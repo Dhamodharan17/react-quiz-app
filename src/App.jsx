@@ -5,6 +5,11 @@ const bankQuizzesByPath = import.meta.glob('./bank/**/*.json', {
   eager: true,
   import: 'default',
 });
+const promptTemplatesByPath = import.meta.glob('./*prompt*.txt', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
 
 const LOCAL_BANK_KEY = 'quiz-bank-v1';
 
@@ -47,6 +52,14 @@ const buildLabelFromFileName = (fileName) =>
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
+const buildTemplateLabelFromFileName = (fileName) =>
+  fileName
+    .replace(/prompt/gi, ' prompt')
+    .replace(/\.txt$/i, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+
 const normalizeQuizName = (value, fallbackValue) => {
   const sanitized = (value || fallbackValue)
     .toLowerCase()
@@ -82,6 +95,18 @@ const SEED_BANK_QUIZZES = Object.entries(bankQuizzesByPath)
     };
   })
   .sort(sortByNewest);
+
+const PROMPT_TEMPLATES = Object.entries(promptTemplatesByPath)
+  .map(([path, content]) => {
+    const fileName = path.split('/').pop() || path;
+    return {
+      id: path,
+      fileName,
+      label: buildTemplateLabelFromFileName(fileName),
+      content,
+    };
+  })
+  .sort((a, b) => a.fileName.localeCompare(b.fileName));
 
 const mapLocalRecordToQuiz = (record) => {
   const createdDate = parseIsoDate(record.createdAt);
@@ -179,7 +204,13 @@ function App() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeSource, setActiveSource] = useState('');
   const [isBankOpen, setIsBankOpen] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState(PROMPT_TEMPLATES[0]?.id ?? '');
   const importFileRef = useRef(null);
+
+  const activeTemplate =
+    PROMPT_TEMPLATES.find((template) => template.id === activeTemplateId) ??
+    PROMPT_TEMPLATES[0] ??
+    null;
 
   const activateQuiz = (quiz, closeSidebar = false) => {
     const quizText = JSON.stringify(quiz.data, null, 2);
@@ -600,6 +631,31 @@ function App() {
                 <p className="empty-state-text">
                   No quiz loaded yet. Import a JSON file and select it from the bank.
                 </p>
+              )}
+
+              {PROMPT_TEMPLATES.length > 0 && (
+                <div className="template-panel">
+                  <div className="template-list" role="tablist" aria-label="Prompt templates">
+                    {PROMPT_TEMPLATES.map((template) => (
+                      <button
+                        key={template.id}
+                        className={`template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
+                        onClick={() => setActiveTemplateId(template.id)}
+                        role="tab"
+                        aria-selected={activeTemplate?.id === template.id}
+                      >
+                        {template.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeTemplate && (
+                    <div className="template-viewer">
+                      <p className="template-title">{activeTemplate.label}</p>
+                      <pre className="template-content">{activeTemplate.content}</pre>
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 

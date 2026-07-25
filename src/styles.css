@@ -293,6 +293,64 @@ body {
   font-style: italic;
 }
 
+.template-panel {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.template-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.template-chip {
+  border-radius: 999px;
+  border: 1px solid #a8c8f8;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.template-chip.active {
+  background: linear-gradient(120deg, #2f7df6, #5da3ff);
+  color: #ffffff;
+  border-color: #2f7df6;
+}
+
+.template-chip:hover:not(:disabled) {
+  transform: none;
+}
+
+.template-viewer {
+  border: 1px solid #b9d4fb;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #ffffff, #f5f9ff);
+  padding: 0.7rem;
+}
+
+.template-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.template-content {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #27456c;
+}
+
 textarea {
   width: 100%;
   min-height: 260px;
