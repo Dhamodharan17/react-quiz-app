@@ -191,16 +191,33 @@ body {
 
 .bank-item {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  text-align: left;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
   border-radius: 12px;
   border: 1px solid #a8c8f8;
   background: #ffffff;
   color: var(--ink);
-  padding: 0.6rem 0.7rem;
+  padding: 0.45rem 0.45rem 0.45rem 0.7rem;
+  box-shadow: none;
+}
+
+.bank-item-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  padding: 0;
   font-size: 0.9rem;
   font-weight: 600;
+  box-shadow: none;
+}
+
+.bank-item-main:hover:not(:disabled) {
+  transform: none;
   box-shadow: none;
 }
 
@@ -224,6 +241,25 @@ body {
   color: rgba(255, 255, 255, 0.9);
 }
 
+.bank-rename {
+  border-radius: 9px;
+  border: 1px solid #c3d8fb;
+  background: #f7fbff;
+  color: #3769ad;
+  min-width: 2.2rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: none;
+}
+
+.bank-rename:hover:not(:disabled) {
+  background: #eff6ff;
+  transform: none;
+  box-shadow: none;
+}
+
 .bank-delete {
   border-radius: 10px;
   border: 1px solid #f1a5af;
@@ -244,6 +280,75 @@ body {
   margin: 0.8rem 0 0;
   font-size: 0.88rem;
   color: #5c7192;
+}
+
+.workflow-copy,
+.empty-state-text {
+  margin: 0;
+  color: var(--subtle);
+  line-height: 1.55;
+}
+
+.empty-state-text {
+  font-style: italic;
+}
+
+.template-panel {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.template-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.template-chip {
+  border-radius: 999px;
+  border: 1px solid #a8c8f8;
+  background: #ffffff;
+  color: var(--ink);
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.template-chip.active {
+  background: linear-gradient(120deg, #2f7df6, #5da3ff);
+  color: #ffffff;
+  border-color: #2f7df6;
+}
+
+.template-chip:hover:not(:disabled) {
+  transform: none;
+}
+
+.template-viewer {
+  border: 1px solid #b9d4fb;
+  border-radius: 14px;
+  background: linear-gradient(120deg, #ffffff, #f5f9ff);
+  padding: 0.7rem;
+}
+
+.template-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.template-content {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #27456c;
 }
 
 textarea {

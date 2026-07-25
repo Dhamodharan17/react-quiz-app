@@ -5,6 +5,11 @@ const bankQuizzesByPath = import.meta.glob('./bank/**/*.json', {
   eager: true,
   import: 'default',
 });
+const promptTemplatesByPath = import.meta.glob('./*prompt*.txt', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
 
 const LOCAL_BANK_KEY = 'quiz-bank-v1';
 
@@ -47,6 +52,25 @@ const buildLabelFromFileName = (fileName) =>
     .replace(/[-_]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());
 
+const buildTemplateLabelFromFileName = (fileName) =>
+  fileName
+    .replace(/prompt/gi, ' prompt')
+    .replace(/\.txt$/i, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
+
+const normalizeQuizName = (value, fallbackValue) => {
+  const sanitized = (value || fallbackValue)
+    .toLowerCase()
+    .replace(/\.json$/i, '')
+    .replace(/[^a-z0-9_\- ]+/g, '')
+    .trim()
+    .replace(/\s+/g, '_');
+
+  return sanitized || fallbackValue;
+};
+
 const sortByNewest = (a, b) => {
   const aTime = parseIsoDate(a.createdAt)?.getTime() ?? 0;
   const bTime = parseIsoDate(b.createdAt)?.getTime() ?? 0;
@@ -72,7 +96,17 @@ const SEED_BANK_QUIZZES = Object.entries(bankQuizzesByPath)
   })
   .sort(sortByNewest);
 
-const SAMPLE_JSON = JSON.stringify(SEED_BANK_QUIZZES[0]?.data ?? [], null, 2);
+const PROMPT_TEMPLATES = Object.entries(promptTemplatesByPath)
+  .map(([path, content]) => {
+    const fileName = path.split('/').pop() || path;
+    return {
+      id: path,
+      fileName,
+      label: buildTemplateLabelFromFileName(fileName),
+      content,
+    };
+  })
+  .sort((a, b) => a.fileName.localeCompare(b.fileName));
 
 const mapLocalRecordToQuiz = (record) => {
   const createdDate = parseIsoDate(record.createdAt);
@@ -160,7 +194,6 @@ const parseQuestions = (rawInput) => {
 };
 
 function App() {
-  const [inputText, setInputText] = useState(SAMPLE_JSON);
   const [bankQuizzes, setBankQuizzes] = useState(SEED_BANK_QUIZZES);
   const [storageMode, setStorageMode] = useState(supabase ? 'cloud' : 'local');
   const [bankNotice, setBankNotice] = useState('');
@@ -171,7 +204,20 @@ function App() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [activeSource, setActiveSource] = useState('');
   const [isBankOpen, setIsBankOpen] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState(PROMPT_TEMPLATES[0]?.id ?? '');
   const importFileRef = useRef(null);
+
+  const activeTemplate =
+    PROMPT_TEMPLATES.find((template) => template.id === activeTemplateId) ??
+    PROMPT_TEMPLATES[0] ??
+    null;
+
+  const activateQuiz = (quiz, closeSidebar = false) => {
+    const quizText = JSON.stringify(quiz.data, null, 2);
+    setActiveSource(quiz.id);
+    parseInputText(quizText);
+    if (closeSidebar) setIsBankOpen(false);
+  };
 
   useEffect(() => {
     const hydrateBank = async () => {
@@ -220,10 +266,11 @@ function App() {
     hydrateBank();
   }, []);
 
-  const resetEditorToLatest = () => {
-    const latest = bankQuizzes[0]?.data ?? [];
-    setInputText(JSON.stringify(latest, null, 2));
-  };
+  useEffect(() => {
+    if (!activeSource && bankQuizzes.length > 0) {
+      activateQuiz(bankQuizzes[0]);
+    }
+  }, [activeSource, bankQuizzes]);
 
   const parseInputText = (rawText) => {
     try {
@@ -240,10 +287,6 @@ function App() {
     }
   };
 
-  const parseInput = () => {
-    parseInputText(inputText);
-  };
-
   const setAnswer = (questionIndex, optionIndex) => {
     setAnswers((previous) => ({
       ...previous,
@@ -252,11 +295,7 @@ function App() {
   };
 
   const loadBankQuiz = (quiz) => {
-    const quizText = JSON.stringify(quiz.data, null, 2);
-    setInputText(quizText);
-    setActiveSource(quiz.id);
-    parseInputText(quizText);
-    setIsBankOpen(false);
+    activateQuiz(quiz, true);
   };
 
   const saveQuizToBank = async (quizData, proposedName) => {
@@ -265,14 +304,7 @@ function App() {
       .replace(/[-:TZ.]/g, '')
       .slice(0, 14);
 
-    const sanitized = (proposedName || `quiz_${fallbackStamp}`)
-      .toLowerCase()
-      .replace(/\.json$/i, '')
-      .replace(/[^a-z0-9_\- ]+/g, '')
-      .trim()
-      .replace(/\s+/g, '_');
-
-    const label = sanitized || `quiz_${fallbackStamp}`;
+    const label = normalizeQuizName(proposedName, `quiz_${fallbackStamp}`);
     const createdAt = new Date().toISOString();
 
     setIsBankBusy(true);
@@ -306,7 +338,7 @@ function App() {
       setBankQuizzes((previous) => [newQuiz, ...previous].sort(sortByNewest));
       setBankNotice('Saved to Supabase.');
       setIsBankBusy(false);
-      return true;
+      return newQuiz;
     }
 
     const id =
@@ -332,23 +364,7 @@ function App() {
 
     setBankNotice('Saved to local browser storage.');
     setIsBankBusy(false);
-    return true;
-  };
-
-  const addCurrentJsonToBank = async () => {
-    let quizData;
-    try {
-      parseQuestions(inputText);
-      quizData = JSON.parse(inputText);
-    } catch {
-      setBankNotice('Current JSON is invalid. Fix it before saving.');
-      return;
-    }
-
-    const suggestedName = window.prompt('Enter quiz name (topic_subtopic)', 'quiz_topic');
-    if (suggestedName === null) return;
-
-    await saveQuizToBank(quizData, suggestedName);
+    return localQuiz;
   };
 
   const importJsonFile = async (event) => {
@@ -367,7 +383,8 @@ function App() {
       return;
     }
 
-    await saveQuizToBank(quizData, file.name.replace(/\.json$/i, ''));
+    const savedQuiz = await saveQuizToBank(quizData, file.name.replace(/\.json$/i, ''));
+    if (savedQuiz) activateQuiz(savedQuiz, true);
     event.target.value = '';
   };
 
@@ -385,17 +402,65 @@ function App() {
       }
     }
 
+    let nextQuizzes = [];
     setBankQuizzes((previous) => {
       const next = previous.filter((item) => item.id !== quiz.id);
+      nextQuizzes = next;
       if (storageMode === 'local') saveLocalBank(next);
       return next;
     });
 
     if (activeSource === quiz.id) {
       setActiveSource('');
+      if (nextQuizzes.length === 0) {
+        setQuestions([]);
+        setAnswers({});
+        setQuizSubmitted(false);
+      }
     }
 
     setBankNotice(storageMode === 'cloud' ? 'Deleted from Supabase.' : 'Deleted locally.');
+    setIsBankBusy(false);
+  };
+
+  const renameBankQuiz = async (quiz) => {
+    const nextNameInput = window.prompt('Rename quiz', quiz.label);
+    if (nextNameInput === null) return;
+
+    const nextName = normalizeQuizName(nextNameInput, quiz.label);
+    if (nextName === quiz.label) return;
+
+    setIsBankBusy(true);
+
+    if (supabase && storageMode === 'cloud') {
+      const { error: updateError } = await supabase
+        .from('quiz_banks')
+        .update({ name: nextName })
+        .eq('id', quiz.id);
+
+      if (updateError) {
+        setBankNotice(updateError.message);
+        setIsBankBusy(false);
+        return;
+      }
+    }
+
+    setBankQuizzes((previous) => {
+      const next = previous.map((item) =>
+        item.id === quiz.id
+          ? {
+              ...item,
+              label: nextName,
+              fileName: `${nextName}.json`,
+            }
+          : item,
+      );
+
+      if (storageMode === 'local') saveLocalBank(next);
+      return next;
+    });
+
+    setBankNotice(storageMode === 'cloud' ? 'Renamed in Supabase.' : 'Renamed locally.');
     setIsBankBusy(false);
   };
 
@@ -476,9 +541,6 @@ function App() {
           </p>
 
           <div className="bank-actions">
-            <button className="bank-action" onClick={addCurrentJsonToBank} disabled={isBankBusy}>
-              Save Current JSON
-            </button>
             <button
               className="bank-action ghost"
               onClick={() => importFileRef.current?.click()}
@@ -503,20 +565,31 @@ function App() {
                 key={quiz.id}
                 className={`bank-row ${activeSource === quiz.id ? 'active' : ''}`}
               >
-                <button className="bank-item" onClick={() => loadBankQuiz(quiz)}>
-                  <span className="bank-item-title">{quiz.label}</span>
-                  {quiz.formattedTime && (
-                    <span className="bank-item-time">{quiz.formattedTime}</span>
-                  )}
-                </button>
-                <button
-                  className="bank-delete"
-                  onClick={() => deleteBankQuiz(quiz)}
-                  disabled={isBankBusy}
-                  aria-label={`Delete ${quiz.label}`}
-                >
-                  Delete
-                </button>
+                <div className="bank-item">
+                  <button className="bank-item-main" onClick={() => loadBankQuiz(quiz)}>
+                    <span className="bank-item-title">{quiz.label}</span>
+                    {quiz.formattedTime && (
+                      <span className="bank-item-time">{quiz.formattedTime}</span>
+                    )}
+                  </button>
+                  <button
+                    className="bank-rename"
+                    onClick={() => renameBankQuiz(quiz)}
+                    disabled={isBankBusy}
+                    aria-label={`Rename ${quiz.label}`}
+                    title="Rename"
+                  >
+                    ✎
+                  </button>
+                  <button
+                    className="bank-delete"
+                    onClick={() => deleteBankQuiz(quiz)}
+                    disabled={isBankBusy}
+                    aria-label={`Delete ${quiz.label}`}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -536,32 +609,53 @@ function App() {
             </div>
             <h1>React Quiz Application</h1>
             <p>
-              Paste MCQs as JSON, parse instantly, answer all questions, and get score,
-              wrong-answer review, and live statistics.
+              Import quiz JSON files, load them from your bank, answer questions, and
+              review results with live statistics.
             </p>
           </header>
 
           <main className="grid-layout">
             <section className="card input-card">
-              <h2>1) Paste JSON</h2>
-              <textarea
-                value={inputText}
-                onChange={(event) => setInputText(event.target.value)}
-                spellCheck={false}
-                aria-label="Quiz JSON input"
-              />
-              <div className="actions-row">
-                <button onClick={parseInput}>Parse</button>
-                <button className="ghost" onClick={resetEditorToLatest}>
-                  Reset Editor to Latest
-                </button>
-              </div>
+              <h2>1) Import Or Select Quiz</h2>
+              <p className="workflow-copy">
+                Use <strong>Import JSON File</strong> from the question bank to add a quiz,
+                then click a quiz tab to load it here.
+              </p>
               {error && <p className="error-text">{error}</p>}
-              {questions.length > 0 && (
+              {questions.length > 0 ? (
                 <p className="hint-text">
-                  Parsed {questions.length} questions. Answers accept index format 0-3 or
+                  Loaded {questions.length} questions. Answers accept index format 0-3 or
                   1-4.
                 </p>
+              ) : (
+                <p className="empty-state-text">
+                  No quiz loaded yet. Import a JSON file and select it from the bank.
+                </p>
+              )}
+
+              {PROMPT_TEMPLATES.length > 0 && (
+                <div className="template-panel">
+                  <div className="template-list" role="tablist" aria-label="Prompt templates">
+                    {PROMPT_TEMPLATES.map((template) => (
+                      <button
+                        key={template.id}
+                        className={`template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
+                        onClick={() => setActiveTemplateId(template.id)}
+                        role="tab"
+                        aria-selected={activeTemplate?.id === template.id}
+                      >
+                        {template.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {activeTemplate && (
+                    <div className="template-viewer">
+                      <p className="template-title">{activeTemplate.label}</p>
+                      <pre className="template-content">{activeTemplate.content}</pre>
+                    </div>
+                  )}
+                </div>
               )}
             </section>
 
@@ -570,10 +664,13 @@ function App() {
               <div className="stats-grid">
                 <Stat label="Total" value={scoreData.total} />
                 <Stat label="Attempted" value={scoreData.attempted} />
-                <Stat label="Correct" value={scoreData.correct} />
-                <Stat label="Wrong" value={scoreData.wrong} />
+                <Stat label="Correct" value={quizSubmitted ? scoreData.correct : '-'} />
+                <Stat label="Wrong" value={quizSubmitted ? scoreData.wrong : '-'} />
                 <Stat label="Unattempted" value={scoreData.unattempted} />
-                <Stat label="Score" value={`${scoreData.percentage}%`} />
+                <Stat
+                  label="Score"
+                  value={quizSubmitted ? `${scoreData.percentage}%` : '-'}
+                />
               </div>
             </section>
           </main>
