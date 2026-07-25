@@ -1,28 +1,39 @@
 import { useMemo, useState } from 'react';
-import sampleJavaMcqs from './bank/sampleJavaMcqs.json';
-
-const SAMPLE_JSON = JSON.stringify(sampleJavaMcqs, null, 2);
 const bankQuizzesByPath = import.meta.glob('./bank/**/*.json', {
   eager: true,
   import: 'default',
 });
 
+const getTimestampFromFileName = (fileName) => {
+  const match = fileName.match(/^(\d{14})[-_]/);
+  return match ? Number(match[1]) : 0;
+};
+
+const getLabelFromFileName = (fileName) => {
+  const withoutExtension = fileName.replace(/\.json$/i, '');
+  const withoutTimestamp = withoutExtension.replace(/^\d{14}[-_]/, '');
+  return withoutTimestamp
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
 const BANK_QUIZZES = Object.entries(bankQuizzesByPath)
   .map(([path, data]) => {
     const fileName = path.split('/').pop() || path;
-    const label = fileName
-      .replace(/\.json$/i, '')
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase());
+    const label = getLabelFromFileName(fileName);
+    const timestamp = getTimestampFromFileName(fileName);
 
     return {
       path,
       fileName,
       label,
+      timestamp,
       data,
     };
   })
-  .sort((a, b) => a.fileName.localeCompare(b.fileName));
+  .sort((a, b) => b.timestamp - a.timestamp || a.fileName.localeCompare(b.fileName));
+
+const SAMPLE_JSON = JSON.stringify(BANK_QUIZZES[0]?.data ?? [], null, 2);
 
 const parseQuestions = (rawInput) => {
   const parsed = JSON.parse(rawInput);
@@ -90,6 +101,13 @@ function App() {
 
   const parseInput = () => {
     parseInputText(inputText);
+  };
+
+  const setAnswer = (questionIndex, optionIndex) => {
+    setAnswers((previous) => ({
+      ...previous,
+      [questionIndex]: optionIndex,
+    }));
   };
 
   const loadBankQuiz = (quiz) => {

@@ -1,0 +1,55 @@
+You are an expert Java tutor and assessment designer.
+
+## Task
+Convert my Java study notes into a multiple-choice quiz for active recall.
+
+## Output Requirements
+- Generate a downloadable **.json** file (do NOT paste the JSON in the chat unless I explicitly ask).
+- Name the file using this format:
+
+YYYYMMDDHHmmss_topic_subtopic.json
+
+Example:
+20260725173000_java_objectclass.json
+
+The JSON must be a valid array in the following format:
+
+[
+  {
+    "question": "What is the core idea of OOP?",
+    "options": [
+      "...",
+      "...",
+      "...",
+      "..."
+    ],
+    "answer": 2,
+    "explanation": "Concise explanation."
+  }
+]
+
+## Quiz Requirements
+
+- Create exactly **30 questions**.
+- At least **21 questions** must come directly from my notes.
+- Up to **9 questions** may be interview-level expansions from the same topic only.
+- Do NOT introduce unrelated Java concepts.
+- Difficulty:
+  - 70% Interview level
+  - 30% Fundamentals
+- Make distractors realistic and plausible.
+- Randomize the correct answer position (1–4).
+- Avoid duplicate questions.
+- Cover every important concept before adding expansion questions.
+- Preserve terminology exactly as written in my notes whenever possible.
+- Ensure explanations are concise (1–2 sentences).
+- Return valid JSON only inside the generated file.
+
+## Deliverable
+
+Create **one downloadable JSON file** and provide its download link. 
+Do not paste the full JSON into the chat unless I explicitly request it.
+
+Now generate the quiz from these notes:
+
+<PASTE NOTES HERE>
