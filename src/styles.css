@@ -534,6 +534,7 @@ select {
 
 .underline-toggle,
 .text-toggle,
+.laser-toggle,
 .clear-annotations {
   padding: 0.45rem 0.75rem;
   font-size: 0.82rem;
@@ -559,6 +560,19 @@ select {
 .text-toggle.active {
   background: var(--ink);
   color: white;
+}
+
+.laser-toggle {
+  background: #fff1f4;
+  color: #be123c;
+  border: 1px solid #fecdd3;
+}
+
+.laser-toggle.active {
+  background: #e11d48;
+  color: white;
+  border-color: #e11d48;
+  box-shadow: 0 0 12px rgba(225, 29, 72, 0.45);
 }
 
 .annotation-text-editor {
