@@ -21,6 +21,7 @@ const mapSupabaseSite = (item) => ({
 });
 
 function App() {
+  const [websiteTitleInput, setWebsiteTitleInput] = useState('');
   const [websiteUrlInput, setWebsiteUrlInput] = useState('');
   const [cachedWebsites, setCachedWebsites] = useState([]);
   const [activeSiteId, setActiveSiteId] = useState('');
@@ -31,13 +32,15 @@ function App() {
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState('');
   const [penEnabled, setPenEnabled] = useState(false);
-  const [penMode, setPenMode] = useState('draw');
-  const [penColor, setPenColor] = useState('#c93d4f');
+  const [penMode, setPenMode] = useState('underline');
+  const [penColor, setPenColor] = useState('#e11d48');
   const [penSize, setPenSize] = useState(4);
   const [snapshotHeight, setSnapshotHeight] = useState(720);
   const [draftAnnotations, setDraftAnnotations] = useState([]);
   const annotationCanvasRef = useRef(null);
   const currentStrokeRef = useRef(null);
+  const drawFrameRef = useRef(null);
+  const pendingAnnotationsRef = useRef([]);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
@@ -91,7 +94,14 @@ function App() {
   }, []);
 
   const handleSaveWebsite = async () => {
+    const trimmedTitle = websiteTitleInput.trim();
     const trimmedUrl = websiteUrlInput.trim();
+
+    if (!trimmedTitle) {
+      setWebsiteError('Please enter an article title first.');
+      setWebsiteNotice('');
+      return;
+    }
 
     if (!trimmedUrl) {
       setWebsiteError('Please enter a website URL first.');
@@ -109,7 +119,7 @@ function App() {
     }
 
     const normalizedUrl = parsedUrl.href;
-    const title = normalizeSiteName(normalizedUrl);
+    const title = trimmedTitle;
     const topic = selectedTopic || 'General';
 
     if (cachedWebsites.some((site) => site.url.toLowerCase() === normalizedUrl.toLowerCase())) {
@@ -155,6 +165,7 @@ function App() {
         setWebsiteNotice('Website and its current content were saved to Supabase.');
       }
       setWebsiteUrlInput('');
+      setWebsiteTitleInput('');
       setIsBusy(false);
       return;
     }
@@ -211,10 +222,36 @@ function App() {
       context.strokeStyle = stroke.color;
       context.lineWidth = stroke.size;
       context.moveTo(stroke.points[0].x, stroke.points[0].y);
-      stroke.points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+      if (stroke.mode === 'underline') {
+        const endPoint = stroke.points[stroke.points.length - 1];
+        context.lineTo(endPoint.x, endPoint.y);
+      } else {
+        for (let index = 1; index < stroke.points.length - 1; index += 1) {
+          const point = stroke.points[index];
+          const nextPoint = stroke.points[index + 1];
+          context.quadraticCurveTo(
+            point.x,
+            point.y,
+            (point.x + nextPoint.x) / 2,
+            (point.y + nextPoint.y) / 2,
+          );
+        }
+        const lastPoint = stroke.points[stroke.points.length - 1];
+        context.lineTo(lastPoint.x, lastPoint.y);
+      }
       context.stroke();
     });
     context.globalCompositeOperation = 'source-over';
+  };
+
+  const scheduleAnnotationDraw = (annotations) => {
+    pendingAnnotationsRef.current = annotations;
+    if (drawFrameRef.current) return;
+
+    drawFrameRef.current = window.requestAnimationFrame(() => {
+      drawAnnotations(pendingAnnotationsRef.current);
+      drawFrameRef.current = null;
+    });
   };
 
   useEffect(() => {
@@ -252,6 +289,7 @@ function App() {
   const startAnnotation = (event) => {
     if (!penEnabled || !activeSite?.snapshotHtml) return;
     event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
     currentStrokeRef.current = {
       mode: penMode,
       color: penColor,
@@ -263,8 +301,16 @@ function App() {
   const extendAnnotation = (event) => {
     const stroke = currentStrokeRef.current;
     if (!stroke) return;
-    stroke.points.push(getCanvasPoint(event));
-    drawAnnotations([...draftAnnotations, stroke]);
+    if (stroke.mode === 'underline') {
+      const pointerEvents = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+      const point = getCanvasPoint(pointerEvents[pointerEvents.length - 1]);
+      stroke.points[1] = { x: point.x, y: stroke.points[0].y };
+      scheduleAnnotationDraw([...draftAnnotations, stroke]);
+      return;
+    }
+    const pointerEvents = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+    pointerEvents.forEach((pointerEvent) => stroke.points.push(getCanvasPoint(pointerEvent)));
+    scheduleAnnotationDraw([...draftAnnotations, stroke]);
   };
 
   const finishAnnotation = () => {
@@ -437,20 +483,6 @@ function App() {
               <div className="annotation-toolbar">
                 <button
                   type="button"
-                  className={penEnabled && penMode === 'draw' ? 'pen-toggle active' : 'pen-toggle'}
-                  onClick={() => {
-                    if (penMode === 'draw') {
-                      setPenEnabled((enabled) => !enabled);
-                    } else {
-                      setPenMode('draw');
-                      setPenEnabled(true);
-                    }
-                  }}
-                >
-                  {penEnabled && penMode === 'draw' ? 'Pen on' : 'Pen'}
-                </button>
-                <button
-                  type="button"
                   className={penEnabled && penMode === 'erase' ? 'eraser-toggle active' : 'eraser-toggle'}
                   onClick={() => {
                     if (penEnabled && penMode === 'erase') {
@@ -463,6 +495,20 @@ function App() {
                 >
                   Eraser
                 </button>
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'underline' ? 'underline-toggle active' : 'underline-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'underline') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('underline');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Underline
+                </button>
                 <label className="pen-size">
                   Size
                   <input
@@ -473,7 +519,7 @@ function App() {
                     onChange={(event) => setPenSize(Number(event.target.value))}
                   />
                 </label>
-                {['#c93d4f', '#0f274a', '#2f7df6', '#14845d'].map((color) => (
+                {['#e11d48', '#111827', '#2563eb', '#059669'].map((color) => (
                   <button
                     key={color}
                     type="button"
@@ -565,6 +611,13 @@ function App() {
           <div className="save-section">
             <h2 className="section-title">Add New Article</h2>
             <div className="save-form">
+              <input
+                type="text"
+                value={websiteTitleInput}
+                onChange={(e) => setWebsiteTitleInput(e.target.value)}
+                placeholder="Article title"
+                className="title-input"
+              />
               <input
                 type="url"
                 value={websiteUrlInput}

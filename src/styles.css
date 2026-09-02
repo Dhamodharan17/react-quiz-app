@@ -240,11 +240,12 @@ select {
 
 .save-form {
   display: grid;
-  grid-template-columns: 1fr 200px auto;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(220px, 1fr) 200px auto;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
+.title-input,
 .url-input {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -509,6 +510,7 @@ select {
 .annotation-canvas.drawing {
   pointer-events: auto;
   cursor: crosshair;
+  touch-action: none;
 }
 
 .annotation-toolbar {
@@ -520,21 +522,11 @@ select {
   border-top: 1px solid var(--border);
 }
 
-.pen-toggle,
 .eraser-toggle,
+.underline-toggle,
 .clear-annotations {
   padding: 0.45rem 0.75rem;
   font-size: 0.82rem;
-}
-
-.pen-toggle {
-  background: #eef4ff;
-  color: var(--accent);
-}
-
-.pen-toggle.active {
-  background: var(--accent);
-  color: white;
 }
 
 .eraser-toggle {
@@ -545,6 +537,17 @@ select {
 
 .eraser-toggle.active {
   background: var(--ink);
+  color: white;
+}
+
+.underline-toggle {
+  background: #eef4ff;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+
+.underline-toggle.active {
+  background: var(--accent);
   color: white;
 }
 
@@ -561,13 +564,14 @@ select {
 }
 
 .pen-swatch {
-  width: 22px;
-  height: 22px;
-  min-width: 22px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
   padding: 0;
   background: var(--swatch-color) !important;
-  border: 2px solid transparent;
+  border: 2px solid white;
   border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(15, 39, 74, 0.28);
 }
 
 .pen-swatch.active {
