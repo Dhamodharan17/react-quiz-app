@@ -59,10 +59,21 @@ function App() {
   const textDragRef = useRef(null);
   const laserFadeFrameRef = useRef(null);
   const snapshotViewerRef = useRef(null);
+  const snapshotFrameRef = useRef(null);
+  const annotationToolRef = useRef({ enabled: false, mode: 'underline', color: '#ef4444', size: 4 });
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
   const hasUnsavedAnnotationChanges =
     JSON.stringify(draftAnnotations) !== JSON.stringify(activeSite?.annotations ?? []);
+
+  useEffect(() => {
+    annotationToolRef.current = {
+      enabled: penEnabled,
+      mode: penMode,
+      color: penColor,
+      size: penSize,
+    };
+  }, [penColor, penEnabled, penMode, penSize]);
 
   // Filter websites by search and topic
   const filteredWebsites = cachedWebsites.filter((site) => {
@@ -275,7 +286,8 @@ function App() {
     });
 
     if (error || !data?.website) {
-      setWebsiteError('Unable to refresh the snapshot. Check that capture-website is deployed.');
+      const message = error?.message || 'The capture function did not return a snapshot.';
+      setWebsiteError(`Unable to capture snapshot: ${message}`);
       setIsBusy(false);
       return;
     }
@@ -308,7 +320,42 @@ function App() {
         ? { x: point.x * width, y: point.y * height }
         : point;
 
+    const getNodeFromPath = (document, path) =>
+      path.reduce((node, childIndex) => node?.childNodes[childIndex], document.body);
+
+    const getAnchoredUnderlinePoints = (stroke) => {
+      if (!stroke.anchor || !snapshotFrameRef.current) return null;
+      const document = snapshotFrameRef.current.contentDocument;
+      if (!document) return null;
+      const startNode = getNodeFromPath(document, stroke.anchor.startPath);
+      const endNode = getNodeFromPath(document, stroke.anchor.endPath);
+      if (!startNode || !endNode) return null;
+      const range = document.createRange();
+      range.setStart(startNode, stroke.anchor.startOffset);
+      range.setEnd(endNode, stroke.anchor.endOffset);
+      const rects = [...range.getClientRects()];
+      const frameRect = snapshotFrameRef.current.getBoundingClientRect();
+      return rects.map((rect) => ({
+        start: { x: rect.left - frameRect.left, y: rect.bottom - frameRect.top + 2 },
+        end: { x: rect.right - frameRect.left, y: rect.bottom - frameRect.top + 2 },
+      }));
+    };
+
     const drawStroke = (stroke, isLaser = false) => {
+      if (stroke.mode === 'anchored-underline') {
+        const lines = getAnchoredUnderlinePoints(stroke);
+        if (!lines) return;
+        context.globalCompositeOperation = 'source-over';
+        context.strokeStyle = stroke.color;
+        context.lineWidth = stroke.size;
+        lines.forEach((line) => {
+          context.beginPath();
+          context.moveTo(line.start.x, line.start.y);
+          context.lineTo(line.end.x, line.end.y);
+          context.stroke();
+        });
+        return;
+      }
       if (stroke.mode === 'text') {
         if (!stroke.text || !stroke.points?.[0]) return;
         const point = toCanvasPoint(stroke.points[0], stroke);
@@ -419,6 +466,43 @@ function App() {
     };
   };
 
+  const getNodePath = (node, document) => {
+    const path = [];
+    let currentNode = node;
+    while (currentNode && currentNode !== document.body) {
+      const parent = currentNode.parentNode;
+      if (!parent) return null;
+      path.unshift([...parent.childNodes].indexOf(currentNode));
+      currentNode = parent;
+    }
+    return currentNode === document.body ? path : null;
+  };
+
+  const addAnchoredUnderline = () => {
+    const frame = snapshotFrameRef.current;
+    const document = frame?.contentDocument;
+    const selection = document?.getSelection();
+    const tool = annotationToolRef.current;
+    if (!document || !selection || selection.isCollapsed || tool.mode !== 'underline' || !tool.enabled) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const startPath = getNodePath(range.startContainer, document);
+    const endPath = getNodePath(range.endContainer, document);
+    if (!startPath || !endPath) return;
+    setDraftAnnotations((previous) => [
+      ...previous,
+      {
+        mode: 'anchored-underline',
+        color: tool.color,
+        size: tool.size,
+        anchor: { startPath, startOffset: range.startOffset, endPath, endOffset: range.endOffset },
+      },
+    ]);
+    selection.removeAllRanges();
+  };
+
   const getDisplayPoint = (point) => {
     const canvas = annotationCanvasRef.current;
     if (!canvas) return point;
@@ -428,6 +512,7 @@ function App() {
   const startAnnotation = (event) => {
     if (!penEnabled || !activeSite?.snapshotHtml) return;
     event.preventDefault();
+    if (penMode === 'underline') return;
     if (penMode === 'text') {
       const point = getCanvasPoint(event.nativeEvent);
       setTextInput({ ...point, value: '' });
@@ -670,28 +755,42 @@ function App() {
               </div>
             </div>
             <div ref={snapshotViewerRef} className="snapshot-viewer">
-              <iframe
-                title={activeSite.title}
-                src={activeSite.snapshotHtml ? undefined : activeSite.url}
-                srcDoc={activeSite.snapshotHtml || undefined}
-                className="modal-iframe"
-                sandbox="allow-same-origin allow-popups allow-forms"
-                style={{ height: activeSite.snapshotHtml ? `${snapshotHeight}px` : undefined }}
-                onLoad={(event) => {
-                  if (!activeSite.snapshotHtml) return;
-                  const document = event.currentTarget.contentDocument;
-                  if (!document) return;
-                  const pageHeight = Math.max(
-                    document.body?.scrollHeight || 0,
-                    document.documentElement.scrollHeight,
-                  );
-                  setSnapshotHeight(Math.max(720, pageHeight));
-                }}
-              />
+              {activeSite.snapshotHtml ? (
+                <iframe
+                  ref={snapshotFrameRef}
+                  title={activeSite.title}
+                  srcDoc={activeSite.snapshotHtml}
+                  className="modal-iframe"
+                  sandbox="allow-same-origin allow-popups allow-forms"
+                  style={{ height: `${snapshotHeight}px` }}
+                  onLoad={(event) => {
+                    const document = event.currentTarget.contentDocument;
+                    if (!document) return;
+                    const pageHeight = Math.max(
+                      document.body?.scrollHeight || 0,
+                      document.documentElement.scrollHeight,
+                    );
+                    setSnapshotHeight(Math.max(720, pageHeight));
+                    document.onmouseup = addAnchoredUnderline;
+                  }}
+                />
+              ) : (
+                <div className="snapshot-unavailable">
+                  <h3>Snapshot unavailable</h3>
+                  <p>
+                    This link has not been captured yet. Refresh the snapshot to view it here, or
+                    open the original website in a new tab.
+                  </p>
+                  {websiteError && <p className="error-text">{websiteError}</p>}
+                  <button type="button" onClick={() => refreshSnapshot(activeSite)} disabled={isBusy}>
+                    {isBusy ? 'Capturing...' : 'Capture snapshot'}
+                  </button>
+                </div>
+              )}
               {activeSite.snapshotHtml && (
                 <canvas
                   ref={annotationCanvasRef}
-                  className={`annotation-canvas ${penEnabled ? 'drawing' : ''}`}
+                  className={`annotation-canvas ${penEnabled && penMode !== 'underline' ? 'drawing' : ''}`}
                   style={{ height: `${snapshotHeight}px` }}
                   onPointerDown={startAnnotation}
                   onPointerMove={extendAnnotation}
