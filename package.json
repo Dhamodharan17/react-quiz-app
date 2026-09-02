@@ -1,5 +1,5 @@
 {
-  "name": "react-quiz-app",
+  "name": "website-cache",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
+    "lucide-react": "^1.39.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
