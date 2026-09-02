@@ -39,11 +39,14 @@ function App() {
   const [snapshotHeight, setSnapshotHeight] = useState(720);
   const [draftAnnotations, setDraftAnnotations] = useState([]);
   const [textInput, setTextInput] = useState(null);
+  const [laserStroke, setLaserStroke] = useState(null);
+  const [laserOpacity, setLaserOpacity] = useState(0);
   const annotationCanvasRef = useRef(null);
   const currentStrokeRef = useRef(null);
   const drawFrameRef = useRef(null);
   const pendingAnnotationsRef = useRef([]);
   const textDragRef = useRef(null);
+  const laserFadeFrameRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
@@ -203,7 +206,7 @@ function App() {
     setIsBusy(false);
   };
 
-  const drawAnnotations = (annotations) => {
+  const drawAnnotations = (annotations, temporaryLaser = null, temporaryLaserOpacity = 0) => {
     const canvas = annotationCanvasRef.current;
     if (!canvas) return;
 
@@ -218,7 +221,7 @@ function App() {
     context.lineCap = 'round';
     context.lineJoin = 'round';
 
-    annotations.forEach((stroke) => {
+    const drawStroke = (stroke, isLaser = false) => {
       if (stroke.mode === 'text') {
         if (!stroke.text || !stroke.points?.[0]) return;
         context.globalCompositeOperation = 'source-over';
@@ -232,6 +235,11 @@ function App() {
       context.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
       context.strokeStyle = stroke.color;
       context.lineWidth = stroke.size;
+      if (isLaser) {
+        context.globalAlpha = temporaryLaserOpacity;
+        context.shadowColor = stroke.color;
+        context.shadowBlur = 12;
+      }
       context.moveTo(stroke.points[0].x, stroke.points[0].y);
       if (stroke.mode === 'underline') {
         const endPoint = stroke.points[stroke.points.length - 1];
@@ -251,7 +259,12 @@ function App() {
         context.lineTo(lastPoint.x, lastPoint.y);
       }
       context.stroke();
-    });
+      context.globalAlpha = 1;
+      context.shadowBlur = 0;
+    };
+
+    annotations.forEach((stroke) => drawStroke(stroke));
+    if (temporaryLaser) drawStroke(temporaryLaser, true);
     context.globalCompositeOperation = 'source-over';
   };
 
@@ -270,8 +283,15 @@ function App() {
   }, [activeSiteId]);
 
   useEffect(() => {
-    if (activeSite?.snapshotHtml) drawAnnotations(draftAnnotations);
-  }, [activeSite?.snapshotHtml, draftAnnotations, snapshotHeight]);
+    if (activeSite?.snapshotHtml) drawAnnotations(draftAnnotations, laserStroke, laserOpacity);
+  }, [activeSite?.snapshotHtml, draftAnnotations, laserOpacity, laserStroke, snapshotHeight]);
+
+  useEffect(
+    () => () => {
+      if (laserFadeFrameRef.current) window.cancelAnimationFrame(laserFadeFrameRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     const undoLastStroke = (event) => {
@@ -306,12 +326,20 @@ function App() {
       return;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    if (penMode === 'laser' && laserFadeFrameRef.current) {
+      window.cancelAnimationFrame(laserFadeFrameRef.current);
+      laserFadeFrameRef.current = null;
+    }
     currentStrokeRef.current = {
       mode: penMode,
       color: penColor,
-      size: penMode === 'erase' ? Math.max(penSize * 3, 14) : penSize,
+      size: penMode === 'erase' ? Math.max(penSize * 3, 14) : penMode === 'laser' ? Math.max(penSize, 3) : penSize,
       points: [getCanvasPoint(event)],
     };
+    if (penMode === 'laser') {
+      setLaserOpacity(1);
+      setLaserStroke({ ...currentStrokeRef.current, points: [...currentStrokeRef.current.points] });
+    }
   };
 
   const extendAnnotation = (event) => {
@@ -326,6 +354,10 @@ function App() {
     }
     const pointerEvents = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
     pointerEvents.forEach((pointerEvent) => stroke.points.push(getCanvasPoint(pointerEvent)));
+    if (stroke.mode === 'laser') {
+      setLaserStroke({ ...stroke, points: [...stroke.points] });
+      return;
+    }
     scheduleAnnotationDraw([...draftAnnotations, stroke]);
   };
 
@@ -333,6 +365,21 @@ function App() {
     const stroke = currentStrokeRef.current;
     currentStrokeRef.current = null;
     if (!stroke || stroke.points.length < 2) return;
+    if (stroke.mode === 'laser') {
+      const fadeStart = performance.now();
+      const fadeLaser = (now) => {
+        const opacity = Math.max(0, 1 - (now - fadeStart) / 900);
+        setLaserOpacity(opacity);
+        if (opacity > 0) {
+          laserFadeFrameRef.current = window.requestAnimationFrame(fadeLaser);
+        } else {
+          setLaserStroke(null);
+          laserFadeFrameRef.current = null;
+        }
+      };
+      laserFadeFrameRef.current = window.requestAnimationFrame(fadeLaser);
+      return;
+    }
     setDraftAnnotations((previous) => [...previous, stroke]);
   };
 
@@ -606,6 +653,20 @@ function App() {
                   }}
                 >
                   Text
+                </button>
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'laser' ? 'laser-toggle active' : 'laser-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'laser') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('laser');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Laser
                 </button>
                 <label className="pen-size">
                   Size
