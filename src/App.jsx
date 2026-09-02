@@ -21,10 +21,21 @@ const mapSupabaseSite = (item) => ({
   createdAt: item.created_at,
 });
 
+const mapReadLaterItem = (item) => ({
+  id: item.id,
+  title: item.title || normalizeSiteName(item.url),
+  url: item.url,
+  createdAt: item.created_at,
+});
+
 function App() {
   const [websiteTitleInput, setWebsiteTitleInput] = useState('');
   const [websiteUrlInput, setWebsiteUrlInput] = useState('');
   const [cachedWebsites, setCachedWebsites] = useState([]);
+  const [readLaterTitleInput, setReadLaterTitleInput] = useState('');
+  const [readLaterUrlInput, setReadLaterUrlInput] = useState('');
+  const [readLaterItems, setReadLaterItems] = useState([]);
+  const [isReadLaterOpen, setIsReadLaterOpen] = useState(false);
   const [activeSiteId, setActiveSiteId] = useState('');
   const [websiteNotice, setWebsiteNotice] = useState('');
   const [websiteError, setWebsiteError] = useState('');
@@ -95,7 +106,17 @@ function App() {
       const remoteSites = (data || []).map(mapSupabaseSite);
       setCachedWebsites(remoteSites);
       setActiveSiteId('');
-      setWebsiteNotice('');
+      const { data: readLaterData, error: readLaterError } = await supabase
+        .from('read_later_items')
+        .select('id, title, url, created_at')
+        .order('created_at', { ascending: false });
+
+      if (readLaterError) {
+        setWebsiteError(`Unable to load Read later items: ${readLaterError.message}`);
+      } else {
+        setReadLaterItems((readLaterData || []).map(mapReadLaterItem));
+        setWebsiteNotice('');
+      }
       setIsBusy(false);
     };
 
@@ -181,6 +202,64 @@ function App() {
 
     setWebsiteError('Supabase is not configured. The website was not saved.');
     setIsBusy(false);
+  };
+
+  const handleSaveForLater = async () => {
+    const trimmedUrl = readLaterUrlInput.trim();
+    const trimmedTitle = readLaterTitleInput.trim();
+
+    if (!trimmedUrl) {
+      setWebsiteError('Please enter a URL to save for later.');
+      return;
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(trimmedUrl);
+    } catch {
+      setWebsiteError('Please enter a valid URL, such as https://example.com');
+      return;
+    }
+
+    const url = parsedUrl.href;
+    if (readLaterItems.some((item) => item.url.toLowerCase() === url.toLowerCase())) {
+      setWebsiteError('This URL is already in Read later.');
+      return;
+    }
+    if (!supabase) {
+      setWebsiteError('Supabase is not configured. The URL was not saved.');
+      return;
+    }
+
+    setIsBusy(true);
+    setWebsiteError('');
+    const { data, error } = await supabase
+      .from('read_later_items')
+      .insert({ title: trimmedTitle || normalizeSiteName(url), url })
+      .select('id, title, url, created_at')
+      .single();
+
+    if (error) {
+      setWebsiteError(`Unable to save Read later item: ${error.message}`);
+      setIsBusy(false);
+      return;
+    }
+
+    setReadLaterItems((previous) => [mapReadLaterItem(data), ...previous]);
+    setReadLaterTitleInput('');
+    setReadLaterUrlInput('');
+    setWebsiteNotice('Added to Read later.');
+    setIsBusy(false);
+  };
+
+  const removeReadLaterItem = async (item) => {
+    if (!window.confirm(`Remove "${item.title}" from Read later?`)) return;
+    const { error } = await supabase.from('read_later_items').delete().eq('id', item.id);
+    if (error) {
+      setWebsiteError(`Unable to remove Read later item: ${error.message}`);
+      return;
+    }
+    setReadLaterItems((previous) => previous.filter((savedItem) => savedItem.id !== item.id));
   };
 
   const refreshSnapshot = async (site) => {
@@ -775,6 +854,70 @@ function App() {
         </div>
       )}
 
+      {isReadLaterOpen && (
+        <div className="read-later-overlay" onClick={() => setIsReadLaterOpen(false)}>
+          <aside className="read-later-drawer" onClick={(event) => event.stopPropagation()}>
+            <div className="read-later-heading">
+              <div>
+                <p className="section-kicker">No snapshot</p>
+                <h2 className="section-title">Read later</h2>
+              </div>
+              <button
+                type="button"
+                className="read-later-close"
+                aria-label="Close Read later"
+                onClick={() => setIsReadLaterOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="read-later-form">
+              <input
+                type="text"
+                value={readLaterTitleInput}
+                onChange={(event) => setReadLaterTitleInput(event.target.value)}
+                placeholder="Title (optional)"
+                aria-label="Read later title"
+              />
+              <input
+                type="url"
+                value={readLaterUrlInput}
+                onChange={(event) => setReadLaterUrlInput(event.target.value)}
+                placeholder="https://example.com"
+                aria-label="Read later URL"
+              />
+              <button type="button" onClick={handleSaveForLater} disabled={isBusy}>
+                Add to list
+              </button>
+            </div>
+            <div className="read-later-list">
+              {readLaterItems.length === 0 ? (
+                <p className="read-later-empty">No links saved for later.</p>
+              ) : (
+                readLaterItems.map((item) => (
+                  <div key={item.id} className="read-later-item">
+                    <div>
+                      <a href={item.url} target="_blank" rel="noreferrer">
+                        {item.title}
+                      </a>
+                      <p>{item.url}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="read-later-remove"
+                      aria-label={`Remove ${item.title} from Read later`}
+                      onClick={() => removeReadLaterItem(item)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Header */}
       <header className="app-header">
         <div className="header-left">
@@ -805,6 +948,9 @@ function App() {
             <h3 className="sidebar-title">TOPICS</h3>
             <button className="topic-item add-topic-btn" onClick={addTopic}>
               + Add New Topic
+            </button>
+            <button className="read-later-sidebar-button" onClick={() => setIsReadLaterOpen(true)}>
+              Read later <span>{readLaterItems.length}</span>
             </button>
             {topics.length === 0 && !selectedTopic && (
               <button className="topic-item general-topic" onClick={() => setSelectedTopic('')}>
