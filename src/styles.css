@@ -9,7 +9,7 @@
   --danger: #c93d4f;
   --success: #14845d;
   --border: #c8dcfb;
-  --sidebar-width: 200px;
+  --sidebar-width: 216px;
 }
 
 * {
@@ -80,7 +80,8 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1rem 2rem;
+  min-height: 64px;
+  padding: 0.8rem 1.5rem;
   background: rgba(255, 255, 255, 0.9);
   border-bottom: 1px solid var(--border);
   box-shadow: 0 2px 8px rgba(47, 125, 246, 0.08);
@@ -163,7 +164,7 @@ select {
 }
 
 .sidebar-title {
-  margin: 0 0 1rem;
+  margin: 0 0 0.35rem;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -220,42 +221,48 @@ select {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 2rem;
-  gap: 2rem;
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  padding: 1.75rem 2rem 3rem;
+  gap: 1.75rem;
 }
 
 .section-title {
-  margin: 0 0 1.5rem;
-  font-size: 1.1rem;
+  margin: 0 0 0.9rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink);
 }
 
 .save-section {
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 1.5rem;
+  border-radius: 10px;
+  padding: 1.15rem 1.25rem 1.25rem;
+  box-shadow: 0 8px 20px rgba(47, 125, 246, 0.08);
 }
 
 .save-form {
   display: grid;
-  grid-template-columns: minmax(160px, 0.65fr) minmax(220px, 1fr) 200px auto;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  grid-template-columns: minmax(180px, 0.6fr) minmax(300px, 1.4fr) minmax(160px, 0.45fr) auto;
+  gap: 0.7rem;
+  margin: 0;
 }
 
 .title-input,
 .url-input {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
   background: white;
   color: var(--ink);
   font-size: 0.9rem;
 }
 
-.url-input:focus {
+.title-input:focus,
+.url-input:focus,
+.topic-select:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47, 125, 246, 0.1);
@@ -264,11 +271,14 @@ select {
 .topic-select {
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 0.65rem 0.8rem;
 }
 
 .btn-save {
-  padding: 10px 20px;
+  min-width: 84px;
+  min-height: 44px;
+  padding: 0.65rem 1.1rem;
   font-weight: 700;
 }
 
