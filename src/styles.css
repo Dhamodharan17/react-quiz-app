@@ -923,6 +923,48 @@ select {
   .articles-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
+
+  .modal-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .modal-header h2 {
+    overflow: hidden;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn-link,
+  .modal-actions .back-button,
+  .modal-actions .btn-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .modal-actions .btn-link:first-of-type {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .annotation-toolbar {
+    gap: 0.45rem;
+    padding: 0.6rem 0.75rem;
+  }
 }
 
 /* Utilities */
