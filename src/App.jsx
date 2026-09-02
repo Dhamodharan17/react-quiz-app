@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Eraser } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 
 const normalizeSiteName = (url) => {
@@ -37,10 +38,12 @@ function App() {
   const [penSize, setPenSize] = useState(4);
   const [snapshotHeight, setSnapshotHeight] = useState(720);
   const [draftAnnotations, setDraftAnnotations] = useState([]);
+  const [textInput, setTextInput] = useState(null);
   const annotationCanvasRef = useRef(null);
   const currentStrokeRef = useRef(null);
   const drawFrameRef = useRef(null);
   const pendingAnnotationsRef = useRef([]);
+  const textDragRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
@@ -216,6 +219,14 @@ function App() {
     context.lineJoin = 'round';
 
     annotations.forEach((stroke) => {
+      if (stroke.mode === 'text') {
+        if (!stroke.text || !stroke.points?.[0]) return;
+        context.globalCompositeOperation = 'source-over';
+        context.fillStyle = stroke.color;
+        context.font = `${Math.max(stroke.size * 4, 14)}px Segoe UI, sans-serif`;
+        context.fillText(stroke.text, stroke.points[0].x, stroke.points[0].y);
+        return;
+      }
       if (!stroke.points || stroke.points.length < 2) return;
       context.beginPath();
       context.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
@@ -289,6 +300,11 @@ function App() {
   const startAnnotation = (event) => {
     if (!penEnabled || !activeSite?.snapshotHtml) return;
     event.preventDefault();
+    if (penMode === 'text') {
+      const point = getCanvasPoint(event.nativeEvent);
+      setTextInput({ ...point, value: '' });
+      return;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     currentStrokeRef.current = {
       mode: penMode,
@@ -318,6 +334,50 @@ function App() {
     currentStrokeRef.current = null;
     if (!stroke || stroke.points.length < 2) return;
     setDraftAnnotations((previous) => [...previous, stroke]);
+  };
+
+  const finishTextAnnotation = () => {
+    if (!textInput) return;
+    const text = textInput.value.trim();
+    if (text) {
+      setDraftAnnotations((previous) => [
+        ...previous,
+        {
+          mode: 'text',
+          color: penColor,
+          size: penSize,
+          points: [{ x: textInput.x, y: textInput.y }],
+          text,
+        },
+      ]);
+    }
+    setTextInput(null);
+  };
+
+  const startTextDrag = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    textDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      textX: textInput.x,
+      textY: textInput.y,
+    };
+  };
+
+  const moveTextDrag = (event) => {
+    const drag = textDragRef.current;
+    if (!drag) return;
+    setTextInput((previous) => ({
+      ...previous,
+      x: drag.textX + event.clientX - drag.startX,
+      y: drag.textY + event.clientY - drag.startY,
+    }));
+  };
+
+  const finishTextDrag = () => {
+    textDragRef.current = null;
   };
 
   const saveAnnotations = async () => {
@@ -478,23 +538,47 @@ function App() {
                   onPointerCancel={finishAnnotation}
                 />
               )}
+              {textInput && (
+                <div
+                  className="annotation-text-editor"
+                  style={{
+                    left: `${textInput.x}px`,
+                    top: `${textInput.y - 24}px`,
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="text-drag-handle"
+                    aria-label="Move text"
+                    onPointerDown={startTextDrag}
+                    onPointerMove={moveTextDrag}
+                    onPointerUp={finishTextDrag}
+                    onPointerCancel={finishTextDrag}
+                  >
+                    ::
+                  </button>
+                  <input
+                    autoFocus
+                    className="annotation-text-input"
+                    style={{
+                      color: penColor,
+                      fontSize: `${Math.max(penSize * 4, 14)}px`,
+                    }}
+                    value={textInput.value}
+                    onChange={(event) =>
+                      setTextInput((previous) => ({ ...previous, value: event.target.value }))
+                    }
+                    onBlur={finishTextAnnotation}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') finishTextAnnotation();
+                      if (event.key === 'Escape') setTextInput(null);
+                    }}
+                  />
+                </div>
+              )}
             </div>
             {activeSite.snapshotHtml && (
               <div className="annotation-toolbar">
-                <button
-                  type="button"
-                  className={penEnabled && penMode === 'erase' ? 'eraser-toggle active' : 'eraser-toggle'}
-                  onClick={() => {
-                    if (penEnabled && penMode === 'erase') {
-                      setPenEnabled(false);
-                    } else {
-                      setPenMode('erase');
-                      setPenEnabled(true);
-                    }
-                  }}
-                >
-                  Eraser
-                </button>
                 <button
                   type="button"
                   className={penEnabled && penMode === 'underline' ? 'underline-toggle active' : 'underline-toggle'}
@@ -508,6 +592,20 @@ function App() {
                   }}
                 >
                   Underline
+                </button>
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'text' ? 'text-toggle active' : 'text-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'text') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('text');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Text
                 </button>
                 <label className="pen-size">
                   Size
@@ -529,6 +627,22 @@ function App() {
                     onClick={() => setPenColor(color)}
                   />
                 ))}
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'erase' ? 'eraser-swatch active' : 'eraser-swatch'}
+                  aria-label="Use eraser"
+                  title="Eraser"
+                  onClick={() => {
+                    if (penEnabled && penMode === 'erase') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('erase');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  <Eraser size={17} strokeWidth={2} aria-hidden="true" />
+                </button>
                 <button
                   type="button"
                   className="clear-annotations"

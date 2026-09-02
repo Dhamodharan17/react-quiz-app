@@ -522,22 +522,11 @@ select {
   border-top: 1px solid var(--border);
 }
 
-.eraser-toggle,
 .underline-toggle,
+.text-toggle,
 .clear-annotations {
   padding: 0.45rem 0.75rem;
   font-size: 0.82rem;
-}
-
-.eraser-toggle {
-  background: #f6faff;
-  color: var(--subtle);
-  border: 1px solid var(--border);
-}
-
-.eraser-toggle.active {
-  background: var(--ink);
-  color: white;
 }
 
 .underline-toggle {
@@ -549,6 +538,50 @@ select {
 .underline-toggle.active {
   background: var(--accent);
   color: white;
+}
+
+.text-toggle {
+  background: #f6faff;
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.text-toggle.active {
+  background: var(--ink);
+  color: white;
+}
+
+.annotation-text-editor {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+}
+
+.text-drag-handle {
+  align-self: stretch;
+  padding: 0 0.35rem;
+  border: 1px solid var(--accent);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  background: #eef4ff;
+  color: var(--accent);
+  cursor: grab;
+}
+
+.text-drag-handle:active {
+  cursor: grabbing;
+}
+
+.annotation-text-input {
+  min-width: 180px;
+  border: 1px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 0.2rem 0.35rem;
+  background: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.2;
+  box-shadow: 0 2px 8px rgba(15, 39, 74, 0.2);
 }
 
 .pen-size {
@@ -577,6 +610,26 @@ select {
 .pen-swatch.active {
   border-color: var(--ink);
   box-shadow: 0 0 0 2px white, 0 0 0 3px var(--ink);
+}
+
+.eraser-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  background: #f6faff;
+  color: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+.eraser-swatch.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
 }
 
 .clear-annotations {
