@@ -598,7 +598,8 @@ select {
 }
 
 .annotation-text-input {
-  min-width: 180px;
+  min-width: 0;
+  max-width: min(360px, 70vw);
   border: 1px solid var(--accent);
   border-radius: 0 4px 4px 0;
   padding: 0.2rem 0.35rem;
@@ -634,6 +635,28 @@ select {
 .pen-swatch.active {
   border-color: var(--ink);
   box-shadow: 0 0 0 2px white, 0 0 0 3px var(--ink);
+}
+
+.custom-color-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background: conic-gradient(#ef4444, #facc15, #16a34a, #2563eb, #a855f7, #ef4444);
+}
+
+.custom-color-picker input {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .eraser-swatch {

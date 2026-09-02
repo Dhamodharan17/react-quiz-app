@@ -34,7 +34,7 @@ function App() {
   const [selectedTopic, setSelectedTopic] = useState('');
   const [penEnabled, setPenEnabled] = useState(false);
   const [penMode, setPenMode] = useState('underline');
-  const [penColor, setPenColor] = useState('#e11d48');
+  const [penColor, setPenColor] = useState('#ef4444');
   const [penSize, setPenSize] = useState(4);
   const [snapshotHeight, setSnapshotHeight] = useState(720);
   const [draftAnnotations, setDraftAnnotations] = useState([]);
@@ -49,6 +49,8 @@ function App() {
   const laserFadeFrameRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
+  const hasUnsavedAnnotationChanges =
+    JSON.stringify(draftAnnotations) !== JSON.stringify(activeSite?.annotations ?? []);
 
   // Filter websites by search and topic
   const filteredWebsites = cachedWebsites.filter((site) => {
@@ -475,6 +477,10 @@ function App() {
     const site = cachedWebsites.find((item) => item.id === siteId);
     if (!site) return;
 
+    if (!window.confirm(`Delete "${site.title}"? This also removes its saved snapshot and marks.`)) {
+      return;
+    }
+
     setIsBusy(true);
 
     if (supabase) {
@@ -610,6 +616,7 @@ function App() {
                     style={{
                       color: penColor,
                       fontSize: `${Math.max(penSize * 4, 14)}px`,
+                      width: `${Math.max(textInput.value.length + 2, 8)}ch`,
                     }}
                     value={textInput.value}
                     onChange={(event) =>
@@ -678,7 +685,7 @@ function App() {
                     onChange={(event) => setPenSize(Number(event.target.value))}
                   />
                 </label>
-                {['#e11d48', '#111827', '#2563eb', '#059669'].map((color) => (
+                {['#ef4444', '#16a34a', '#facc15'].map((color) => (
                   <button
                     key={color}
                     type="button"
@@ -688,6 +695,14 @@ function App() {
                     onClick={() => setPenColor(color)}
                   />
                 ))}
+                <label className="custom-color-picker" title="Choose a custom RGB color">
+                  <input
+                    type="color"
+                    value={penColor}
+                    aria-label="Choose a custom RGB color"
+                    onChange={(event) => setPenColor(event.target.value)}
+                  />
+                </label>
                 <button
                   type="button"
                   className={penEnabled && penMode === 'erase' ? 'eraser-swatch active' : 'eraser-swatch'}
@@ -716,7 +731,7 @@ function App() {
                   type="button"
                   className="save-annotations"
                   onClick={saveAnnotations}
-                  disabled={isBusy}
+                  disabled={isBusy || !hasUnsavedAnnotationChanges}
                 >
                   {isBusy ? 'Saving...' : 'Save marks'}
                 </button>
