@@ -33,6 +33,16 @@ const validateUrl = (value: string) => {
   return url;
 };
 
+const addDocumentBase = (html: string, pageUrl: string) => {
+  const baseTag = `<base href="${pageUrl.replace(/"/g, '&quot;')}">`;
+
+  if (/<head\b[^>]*>/i.test(html)) {
+    return html.replace(/<head\b[^>]*>/i, (head) => `${head}${baseTag}`);
+  }
+
+  return `${baseTag}${html}`;
+};
+
 const fetchHtml = async (initialUrl: string) => {
   let url = validateUrl(initialUrl);
 
@@ -66,7 +76,7 @@ const fetchHtml = async (initialUrl: string) => {
     if (html.length > maxSnapshotCharacters) {
       throw new Error('The webpage is too large to save as a snapshot.');
     }
-    return html;
+    return addDocumentBase(html, url.href);
   }
 
   throw new Error('The website redirected too many times.');

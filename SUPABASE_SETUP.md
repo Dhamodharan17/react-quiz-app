@@ -19,6 +19,7 @@ create table if not exists public.saved_websites (
   topic text not null default 'General',
   snapshot_html text,
   snapshot_created_at timestamptz,
+  annotations jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
 ```
@@ -28,7 +29,8 @@ If you already created the table, run this once instead:
 ```sql
 alter table public.saved_websites
   add column if not exists snapshot_html text,
-  add column if not exists snapshot_created_at timestamptz;
+  add column if not exists snapshot_created_at timestamptz,
+  add column if not exists annotations jsonb not null default '[]'::jsonb;
 ```
 
 ## 3) Allow client access (MVP)
@@ -52,6 +54,12 @@ create policy "delete saved websites"
 on public.saved_websites
 for delete
 using (true);
+
+create policy "update saved websites"
+on public.saved_websites
+for update
+using (true)
+with check (true);
 ```
 
 ## 4) Add env vars

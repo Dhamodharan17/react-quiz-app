@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 
 const normalizeSiteName = (url) => {
@@ -16,6 +16,7 @@ const mapSupabaseSite = (item) => ({
   topic: item.topic || 'General',
   snapshotHtml: item.snapshot_html,
   snapshotCreatedAt: item.snapshot_created_at,
+  annotations: Array.isArray(item.annotations) ? item.annotations : [],
   createdAt: item.created_at,
 });
 
@@ -29,6 +30,14 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState('');
+  const [penEnabled, setPenEnabled] = useState(false);
+  const [penMode, setPenMode] = useState('draw');
+  const [penColor, setPenColor] = useState('#c93d4f');
+  const [penSize, setPenSize] = useState(4);
+  const [snapshotHeight, setSnapshotHeight] = useState(720);
+  const [draftAnnotations, setDraftAnnotations] = useState([]);
+  const annotationCanvasRef = useRef(null);
+  const currentStrokeRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
@@ -60,7 +69,7 @@ function App() {
 
       const { data, error } = await supabase
         .from('saved_websites')
-        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, annotations, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -116,7 +125,7 @@ function App() {
       const { data, error } = await supabase
         .from('saved_websites')
         .insert({ title, url: normalizedUrl, topic })
-        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, annotations, created_at')
         .single();
 
       if (error) {
@@ -153,6 +162,142 @@ function App() {
     setWebsiteError('Supabase is not configured. The website was not saved.');
     setIsBusy(false);
   };
+
+  const refreshSnapshot = async (site) => {
+    if (!supabase) {
+      setWebsiteError('Supabase is not configured.');
+      return;
+    }
+
+    setIsBusy(true);
+    setWebsiteError('');
+    const { data, error } = await supabase.functions.invoke('capture-website', {
+      body: { websiteId: site.id, url: site.url },
+    });
+
+    if (error || !data?.website) {
+      setWebsiteError('Unable to refresh the snapshot. Check that capture-website is deployed.');
+      setIsBusy(false);
+      return;
+    }
+
+    const updatedSite = { ...site, ...data.website };
+    setCachedWebsites((previous) =>
+      previous.map((cachedSite) => (cachedSite.id === site.id ? updatedSite : cachedSite)),
+    );
+    setWebsiteNotice('Website snapshot refreshed.');
+    setIsBusy(false);
+  };
+
+  const drawAnnotations = (annotations) => {
+    const canvas = annotationCanvasRef.current;
+    if (!canvas) return;
+
+    const context = canvas.getContext('2d');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const pixelRatio = window.devicePixelRatio || 1;
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    context.scale(pixelRatio, pixelRatio);
+    context.clearRect(0, 0, width, height);
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    annotations.forEach((stroke) => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      context.beginPath();
+      context.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
+      context.strokeStyle = stroke.color;
+      context.lineWidth = stroke.size;
+      context.moveTo(stroke.points[0].x, stroke.points[0].y);
+      stroke.points.slice(1).forEach((point) => context.lineTo(point.x, point.y));
+      context.stroke();
+    });
+    context.globalCompositeOperation = 'source-over';
+  };
+
+  useEffect(() => {
+    setDraftAnnotations(activeSite?.annotations ?? []);
+  }, [activeSiteId]);
+
+  useEffect(() => {
+    if (activeSite?.snapshotHtml) drawAnnotations(draftAnnotations);
+  }, [activeSite?.snapshotHtml, draftAnnotations, snapshotHeight]);
+
+  useEffect(() => {
+    const undoLastStroke = (event) => {
+      if (
+        !penEnabled ||
+        !activeSite?.snapshotHtml ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.key.toLowerCase() !== 'z'
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setDraftAnnotations((previous) => previous.slice(0, -1));
+    };
+
+    window.addEventListener('keydown', undoLastStroke);
+    return () => window.removeEventListener('keydown', undoLastStroke);
+  }, [activeSite?.snapshotHtml, penEnabled]);
+
+  const getCanvasPoint = (event) => {
+    const bounds = annotationCanvasRef.current.getBoundingClientRect();
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+  };
+
+  const startAnnotation = (event) => {
+    if (!penEnabled || !activeSite?.snapshotHtml) return;
+    event.preventDefault();
+    currentStrokeRef.current = {
+      mode: penMode,
+      color: penColor,
+      size: penMode === 'erase' ? Math.max(penSize * 3, 14) : penSize,
+      points: [getCanvasPoint(event)],
+    };
+  };
+
+  const extendAnnotation = (event) => {
+    const stroke = currentStrokeRef.current;
+    if (!stroke) return;
+    stroke.points.push(getCanvasPoint(event));
+    drawAnnotations([...draftAnnotations, stroke]);
+  };
+
+  const finishAnnotation = () => {
+    const stroke = currentStrokeRef.current;
+    currentStrokeRef.current = null;
+    if (!stroke || stroke.points.length < 2) return;
+    setDraftAnnotations((previous) => [...previous, stroke]);
+  };
+
+  const saveAnnotations = async () => {
+    if (!activeSite || !supabase) return;
+    setIsBusy(true);
+    const { error } = await supabase
+      .from('saved_websites')
+      .update({ annotations: draftAnnotations })
+      .eq('id', activeSite.id);
+
+    if (error) {
+      setWebsiteError(`Unable to save pen marks: ${error.message}`);
+      setIsBusy(false);
+      return;
+    }
+
+    setCachedWebsites((previous) =>
+      previous.map((site) =>
+        site.id === activeSite.id ? { ...site, annotations: draftAnnotations } : site,
+      ),
+    );
+    setWebsiteNotice('Pen marks saved to Supabase.');
+    setIsBusy(false);
+  };
+
+  const clearAnnotations = () => setDraftAnnotations([]);
 
   const addTopic = () => {
     const newTopic = window.prompt('Enter topic name:');
@@ -228,15 +373,23 @@ function App() {
       {activeSite && (
         <div className="modal-overlay" onClick={() => setActiveSiteId('')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setActiveSiteId('')}>
-              ✕
-            </button>
             <div className="modal-header">
               <h2>{activeSite.title}</h2>
               <div className="modal-actions">
+                <button type="button" className="back-button" onClick={() => setActiveSiteId('')}>
+                  Back to cache
+                </button>
                 <a href={activeSite.url} target="_blank" rel="noreferrer" className="btn-link">
                   Open original
                 </a>
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => refreshSnapshot(activeSite)}
+                  disabled={isBusy}
+                >
+                  {isBusy ? 'Refreshing...' : 'Refresh snapshot'}
+                </button>
                 <button
                   type="button"
                   className="btn-delete"
@@ -249,13 +402,105 @@ function App() {
                 </button>
               </div>
             </div>
-            <iframe
-              title={activeSite.title}
-              src={activeSite.snapshotHtml ? undefined : activeSite.url}
-              srcDoc={activeSite.snapshotHtml || undefined}
-              className="modal-iframe"
-              sandbox="allow-same-origin allow-popups allow-forms"
-            />
+            <div className="snapshot-viewer">
+              <iframe
+                title={activeSite.title}
+                src={activeSite.snapshotHtml ? undefined : activeSite.url}
+                srcDoc={activeSite.snapshotHtml || undefined}
+                className="modal-iframe"
+                sandbox="allow-same-origin allow-popups allow-forms"
+                style={{ height: activeSite.snapshotHtml ? `${snapshotHeight}px` : undefined }}
+                onLoad={(event) => {
+                  if (!activeSite.snapshotHtml) return;
+                  const document = event.currentTarget.contentDocument;
+                  if (!document) return;
+                  const pageHeight = Math.max(
+                    document.body?.scrollHeight || 0,
+                    document.documentElement.scrollHeight,
+                  );
+                  setSnapshotHeight(Math.max(720, pageHeight));
+                }}
+              />
+              {activeSite.snapshotHtml && (
+                <canvas
+                  ref={annotationCanvasRef}
+                  className={`annotation-canvas ${penEnabled ? 'drawing' : ''}`}
+                  style={{ height: `${snapshotHeight}px` }}
+                  onPointerDown={startAnnotation}
+                  onPointerMove={extendAnnotation}
+                  onPointerUp={finishAnnotation}
+                  onPointerCancel={finishAnnotation}
+                />
+              )}
+            </div>
+            {activeSite.snapshotHtml && (
+              <div className="annotation-toolbar">
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'draw' ? 'pen-toggle active' : 'pen-toggle'}
+                  onClick={() => {
+                    if (penMode === 'draw') {
+                      setPenEnabled((enabled) => !enabled);
+                    } else {
+                      setPenMode('draw');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  {penEnabled && penMode === 'draw' ? 'Pen on' : 'Pen'}
+                </button>
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'erase' ? 'eraser-toggle active' : 'eraser-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'erase') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('erase');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Eraser
+                </button>
+                <label className="pen-size">
+                  Size
+                  <input
+                    type="range"
+                    min="1"
+                    max="18"
+                    value={penSize}
+                    onChange={(event) => setPenSize(Number(event.target.value))}
+                  />
+                </label>
+                {['#c93d4f', '#0f274a', '#2f7df6', '#14845d'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`pen-swatch ${penColor === color ? 'active' : ''}`}
+                    style={{ '--swatch-color': color }}
+                    aria-label={`Use ${color} pen`}
+                    onClick={() => setPenColor(color)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="clear-annotations"
+                  onClick={clearAnnotations}
+                  disabled={draftAnnotations.length === 0 || isBusy}
+                >
+                  Clear marks
+                </button>
+                <button
+                  type="button"
+                  className="save-annotations"
+                  onClick={saveAnnotations}
+                  disabled={isBusy}
+                >
+                  {isBusy ? 'Saving...' : 'Save marks'}
+                </button>
+              </div>
+            )}
             <p className="modal-tip">
               {activeSite.snapshotCreatedAt
                 ? `Showing the saved snapshot from ${formatDate(activeSite.snapshotCreatedAt)}.`
