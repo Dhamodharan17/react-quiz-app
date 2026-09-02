@@ -75,7 +75,7 @@ function App() {
     };
   }, [penColor, penEnabled, penMode, penSize]);
 
-  // Filter websites by search and topic
+  // Filter websites by search and topic 
   const filteredWebsites = cachedWebsites.filter((site) => {
     const matchesSearch =
       site.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
