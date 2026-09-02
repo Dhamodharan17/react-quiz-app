@@ -86,7 +86,30 @@ create policy "delete read later items"
 on public.read_later_items for delete using (true);
 ```
 
-## 5) Add env vars
+## 5) Create the topics table
+
+Run this SQL in Supabase SQL Editor. Topics appear in the article form dropdown and persist across reloads.
+
+```sql
+create table if not exists public.website_topics (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  created_at timestamptz not null default now()
+);
+
+alter table public.website_topics enable row level security;
+
+create policy "read website topics"
+on public.website_topics for select using (true);
+
+create policy "insert website topics"
+on public.website_topics for insert with check (true);
+
+create policy "delete website topics"
+on public.website_topics for delete using (true);
+```
+
+## 6) Add env vars
 
 Create `.env` in project root based on `.env.example`:
 
@@ -95,7 +118,7 @@ VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-## 6) Deploy the website snapshot function
+## 7) Deploy the website snapshot function
 
 The function fetches the current HTML server-side and saves it to the database. Install the Supabase CLI, log in, link your project, then deploy it:
 
@@ -108,7 +131,7 @@ npx supabase functions deploy capture-website --no-verify-jwt
 
 Some websites prevent automated downloads, require sign-in, or render their content with JavaScript. Those pages can be saved as links but may not produce a complete snapshot.
 
-## 7) Run locally
+## 8) Run locally
 
 ```bash
 npm run dev
@@ -116,7 +139,7 @@ npm run dev
 
 The app requires Supabase. If its environment variables are missing or the database is unavailable, saved websites cannot be loaded or changed.
 
-## 8) Deploy for free on Vercel
+## 9) Deploy for free on Vercel
 
 - Push code to GitHub.
 - Import repo in Vercel.
