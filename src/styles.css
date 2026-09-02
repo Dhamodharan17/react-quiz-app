@@ -637,6 +637,28 @@ select {
   box-shadow: 0 0 0 2px white, 0 0 0 3px var(--ink);
 }
 
+.custom-color-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background: conic-gradient(#ef4444, #facc15, #16a34a, #2563eb, #a855f7, #ef4444);
+}
+
+.custom-color-picker input {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .eraser-swatch {
   display: inline-flex;
   align-items: center;
