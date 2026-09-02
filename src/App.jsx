@@ -49,6 +49,8 @@ function App() {
   const laserFadeFrameRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
+  const hasUnsavedAnnotationChanges =
+    JSON.stringify(draftAnnotations) !== JSON.stringify(activeSite?.annotations ?? []);
 
   // Filter websites by search and topic
   const filteredWebsites = cachedWebsites.filter((site) => {
@@ -475,6 +477,10 @@ function App() {
     const site = cachedWebsites.find((item) => item.id === siteId);
     if (!site) return;
 
+    if (!window.confirm(`Delete "${site.title}"? This also removes its saved snapshot and marks.`)) {
+      return;
+    }
+
     setIsBusy(true);
 
     if (supabase) {
@@ -610,6 +616,7 @@ function App() {
                     style={{
                       color: penColor,
                       fontSize: `${Math.max(penSize * 4, 14)}px`,
+                      width: `${Math.max(textInput.value.length + 2, 8)}ch`,
                     }}
                     value={textInput.value}
                     onChange={(event) =>
@@ -716,7 +723,7 @@ function App() {
                   type="button"
                   className="save-annotations"
                   onClick={saveAnnotations}
-                  disabled={isBusy}
+                  disabled={isBusy || !hasUnsavedAnnotationChanges}
                 >
                   {isBusy ? 'Saving...' : 'Save marks'}
                 </button>

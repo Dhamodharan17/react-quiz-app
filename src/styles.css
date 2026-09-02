@@ -598,7 +598,8 @@ select {
 }
 
 .annotation-text-input {
-  min-width: 180px;
+  min-width: 0;
+  max-width: min(360px, 70vw);
   border: 1px solid var(--accent);
   border-radius: 0 4px 4px 0;
   padding: 0.2rem 0.35rem;
