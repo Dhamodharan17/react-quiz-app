@@ -28,6 +28,8 @@ const mapReadLaterItem = (item) => ({
   createdAt: item.created_at,
 });
 
+const mapTopic = (item) => item.name;
+
 function App() {
   const [websiteTitleInput, setWebsiteTitleInput] = useState('');
   const [websiteUrlInput, setWebsiteUrlInput] = useState('');
@@ -117,6 +119,16 @@ function App() {
       const remoteSites = (data || []).map(mapSupabaseSite);
       setCachedWebsites(remoteSites);
       setActiveSiteId('');
+      const { data: topicData, error: topicError } = await supabase
+        .from('website_topics')
+        .select('id, name')
+        .order('name', { ascending: true });
+
+      if (topicError) {
+        setWebsiteError(`Unable to load topics: ${topicError.message}`);
+      } else {
+        setTopics((topicData || []).map(mapTopic));
+      }
       const { data: readLaterData, error: readLaterError } = await supabase
         .from('read_later_items')
         .select('id, title, url, created_at')
@@ -648,19 +660,48 @@ function App() {
   const clearAnnotations = () => setDraftAnnotations([]);
 
   const addTopic = () => {
-    const newTopic = window.prompt('Enter topic name:');
+    const newTopic = window.prompt('Enter topic name:')?.trim();
     if (!newTopic) return;
-    if (topics.includes(newTopic)) {
+    if (topics.some((topic) => topic.toLowerCase() === newTopic.toLowerCase())) {
       alert('Topic already exists.');
       return;
     }
-    const updated = [...topics, newTopic];
-    setTopics(updated);
+    if (!supabase) {
+      setWebsiteError('Supabase is not configured. The topic was not saved.');
+      return;
+    }
+
+    const saveTopic = async () => {
+      setIsBusy(true);
+      const { data, error } = await supabase
+        .from('website_topics')
+        .insert({ name: newTopic })
+        .select('id, name')
+        .single();
+
+      if (error) {
+        setWebsiteError(`Unable to add topic: ${error.message}`);
+        setIsBusy(false);
+        return;
+      }
+
+      setTopics((previous) => [...previous, mapTopic(data)].sort((first, second) => first.localeCompare(second)));
+      setSelectedTopic(data.name);
+      setWebsiteError('');
+      setIsBusy(false);
+    };
+
+    saveTopic();
   };
 
-  const removeTopic = (topic) => {
-    const updated = topics.filter((t) => t !== topic);
-    setTopics(updated);
+  const removeTopic = async (topic) => {
+    if (!supabase || !window.confirm(`Delete the "${topic}" topic?`)) return;
+    const { error } = await supabase.from('website_topics').delete().eq('name', topic);
+    if (error) {
+      setWebsiteError(`Unable to delete topic: ${error.message}`);
+      return;
+    }
+    setTopics((previous) => previous.filter((name) => name !== topic));
     if (selectedTopic === topic) {
       setSelectedTopic('');
     }
