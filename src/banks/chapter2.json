@@ -1,0 +1,332 @@
+[
+  {
+    "question": "What is the primary architectural purpose of data partitioning in a distributed system?",
+    "options": [
+      "To maximize fault tolerance by keeping duplicate copies of data across all nodes.",
+      "To achieve high scalability and write performance by splitting data and traffic across multiple nodes.",
+      "To guarantee strict serializability across multi-region database deployments.",
+      "To ensure all read queries are served with zero network latency."
+    ],
+    "answer": 2,
+    "explanation": "Partitioning splits data across multiple nodes to distribute storage and write traffic, directly driving horizontal scalability and performance."
+  },
+  {
+    "question": "How does pessimistic replication differ fundamentally from optimistic replication?",
+    "options": [
+      "Pessimistic replication allows data replicas to temporarily diverge, whereas optimistic replication requires instant synchronous locks.",
+      "Pessimistic replication guarantees all replicas remain identical during writes, whereas optimistic replication permits temporary divergence followed by convergence.",
+      "Pessimistic replication is optimized for read-heavy workloads, whereas optimistic replication only supports single-master topologies.",
+      "Pessimistic replication eliminates network partitions, whereas optimistic replication resolves physical disk failures."
+    ],
+    "answer": 2,
+    "explanation": "Pessimistic replication prioritizes consistency by ensuring replicas remain synchronized on write, while optimistic replication maximizes availability by allowing replicas to diverge and converge later."
+  },
+  {
+    "question": "In Quorum-based distributed systems, what condition must be satisfied to guarantee that at least one node in your read set contains the most recent write?",
+    "options": [
+      "Vr + Vw <= V",
+      "Vr + Vw > V",
+      "Vw <= V / 2",
+      "Vr * Vw = V"
+    ],
+    "answer": 2,
+    "explanation": "By the Pigeonhole Principle, setting Vr + Vw > V guarantees that the read quorum (Vr) and write quorum (Vw) overlap by at least one node containing the latest update."
+  },
+  {
+    "question": "To prevent split-brain scenarios or conflicting concurrent updates in a Quorum-based system, which condition must hold true for the write quorum (Vw)?",
+    "options": [
+      "Vw > V / 2",
+      "Vw < V / 2",
+      "Vw = 1",
+      "Vw + Vr = V / 2"
+    ],
+    "answer": 1,
+    "explanation": "Requiring Vw > V / 2 ensures that a majority of nodes must agree on a write, preventing two isolated partitions from concurrently accepting conflicting writes."
+  },
+  {
+    "question": "According to the CAP theorem, what choice must a distributed system make when a physical network partition occurs?",
+    "options": [
+      "Choose between Atomicity and Durability.",
+      "Choose between Consistency and Availability.",
+      "Choose between Latency and Security.",
+      "Choose between Partition Tolerance and Horizontal Scaling."
+    ],
+    "answer": 2,
+    "explanation": "During a network partition, a system must either stop operating to maintain strict Consistency (sacrificing Availability) or continue operating (sacrificing Consistency)."
+  },
+  {
+    "question": "What tradeoff does the PACELC theorem explicitly formalize when NO network partition is present in the system?",
+    "options": [
+      "Tradeoff between Partitioning and Encryption.",
+      "Tradeoff between Latency and Consistency.",
+      "Tradeoff between Durability and Isolation.",
+      "Tradeoff between Throughput and CPU usage."
+    ],
+    "answer": 2,
+    "explanation": "PACELC states that if there is a Partition (P), choose Availability (A) or Consistency (C); Else (E), choose Latency (L) or Consistency (C)."
+  },
+  {
+    "question": "According to PACELC taxonomy, how is a system classified if it chooses Availability during partitions and low Latency during normal operations?",
+    "options": [
+      "CP / EC",
+      "AP / EC",
+      "CP / EL",
+      "AP / EL"
+    ],
+    "answer": 4,
+    "explanation": "Systems that favor Availability during partitions and low Latency during normal operations are classified as AP/EL (e.g., DynamoDB, Cassandra)."
+  },
+  {
+    "question": "Which consistency model guarantees that every read operation appears to take effect instantaneously across all clients at a single global point in time?",
+    "options": [
+      "Eventual Consistency",
+      "Causal Consistency",
+      "Linearizability",
+      "Sequential Consistency"
+    ],
+    "answer": 3,
+    "explanation": "Linearizability (strong consistency) provides a global real-time ordering guarantee where operations take effect instantaneously."
+  },
+  {
+    "question": "In database isolation levels, what defines a 'Dirty Read' anomaly?",
+    "options": [
+      "A transaction overrides uncommitted data written by another concurrent transaction.",
+      "A transaction reads data that has been modified by another concurrent transaction but not yet committed.",
+      "A transaction re-reads the same row twice and observes altered column values.",
+      "A transaction executes a range query twice and receives a different count of rows."
+    ],
+    "answer": 2,
+    "explanation": "A Dirty Read occurs when transaction A reads uncommitted changes made by transaction B, which may later roll back."
+  },
+  {
+    "question": "What database anomaly occurs when a transaction reads a set of rows matching a predicate, and a concurrent transaction inserts new rows matching that predicate before the first commits?",
+    "options": [
+      "Dirty Write",
+      "Read Skew",
+      "Phantom Read",
+      "Lost Update"
+    ],
+    "answer": 3,
+    "explanation": "Phantom Reads happen when a range/predicate query executed twice within a transaction returns a different set of matching rows due to concurrent inserts."
+  },
+  {
+    "question": "How does 'Write Skew' differ from 'Dirty Read' or 'Lost Update' in concurrent transactions?",
+    "options": [
+      "Write skew occurs when two concurrent transactions read overlapping data sets, satisfy local constraints independently, and write non-overlapping data that violates a global invariant.",
+      "Write skew occurs when a transaction reads uncommitted data and immediately writes it to disk.",
+      "Write skew occurs when two transactions overwrite the exact same column without locking.",
+      "Write skew occurs when a read query hangs indefinitely due to network partitions."
+    ],
+    "answer": 1,
+    "explanation": "Write skew happens when individual writes are valid independently based on initial snapshot reads, but together they violate a cross-row system rule (e.g., doctor on-call rule)."
+  },
+  {
+    "question": "In multi-master replication, what is the key characteristic of an 'eager' conflict resolution strategy?",
+    "options": [
+      "Conflicts are stored as multiple versions during write and resolved when a read query is issued.",
+      "Conflicts are detected and resolved synchronously during the write operation before returning a response.",
+      "Conflicts are offloaded to client applications to merge manually after persistence.",
+      "Conflicts are automatically discarded by prioritizing older timestamps."
+    ],
+    "answer": 2,
+    "explanation": "Eager conflict resolution resolves conflicting updates synchronously during write execution across masters."
+  },
+  {
+    "question": "What distinguishes 'Business level consistency' from 'Database level consistency' in application design?",
+    "options": [
+      "Database consistency relies on primary/foreign key constraints enforced by the DB engine, while business consistency enforces domain rules (e.g., rider cannot take two rides at once) in application code.",
+      "Database consistency applies to NOSQL stores, whereas business consistency applies only to relational SQL stores.",
+      "Database consistency prevents physical disk failure, whereas business consistency prevents network partitions.",
+      "Database consistency requires asynchronous replication, whereas business consistency uses synchronous replication."
+    ],
+    "answer": 1,
+    "explanation": "Database level consistency enforces structural invariants (PK, FK, Unique constraints), whereas business domain invariants must be maintained by application logic."
+  },
+  {
+    "question": "In virtual node consistent hashing, what problem do virtual nodes primarily solve?",
+    "options": [
+      "They prevent Byzantine faults in peer-to-peer network communication.",
+      "They eliminate uneven data distribution (hotspots) and ensure balanced re-sharding when physical nodes are added or removed.",
+      "They convert asynchronous replication into synchronous replication automatically.",
+      "They force all multi-master writes to execute sequentially."
+    ],
+    "answer": 2,
+    "explanation": "Virtual nodes map multiple tokens on the hash ring to single physical machines, distributing key ranges evenly and preventing data imbalance."
+  },
+  {
+    "question": "What is the key behavior of 'Lazy' conflict resolution in multi-master database systems?",
+    "options": [
+      "Writes are rejected immediately if a conflict is suspected.",
+      "Multiple conflicting values are persisted during writes and resolved later during read operations.",
+      "The database blocks all concurrent transactions until all master nodes acknowledge the write.",
+      "The system automatically downgrades to single-master replication."
+    ],
+    "answer": 2,
+    "explanation": "Lazy conflict resolution permits conflicting updates to be stored (e.g., vector clocks / sibling values) and defers resolution to read time or client processing."
+  },
+  {
+    "question": "In database transactions, what does the 'Atomicity' safety guarantee ensure during system failures?",
+    "options": [
+      "All operations within a transaction complete successfully, or all operations are completely rolled back with no partial effects.",
+      "Data is guaranteed to be mirrored across at least three distinct physical availability zones.",
+      "Read queries will never be blocked by ongoing write operations.",
+      "Concurrent transactions execute in a strict sequential order."
+    ],
+    "answer": 1,
+    "explanation": "Atomicity guarantees the 'all-or-nothing' execution of a transaction, preventing partial states upon failure."
+  },
+  {
+    "question": "How does 'Consistency' in the ACID transaction model differ from 'Consistency' in the CAP theorem?",
+    "options": [
+      "ACID consistency refers to moving the database from one valid state to another obeying invariants, whereas CAP consistency means every successful read receives the most recent write.",
+      "ACID consistency means high availability, whereas CAP consistency means zero latency.",
+      "ACID consistency applies only to multi-master topologies, whereas CAP consistency applies to single-master.",
+      "ACID consistency guarantees eventual convergence, whereas CAP consistency guarantees dirty reads."
+    ],
+    "answer": 1,
+    "explanation": "ACID Consistency ensures database state transitions satisfy defined schema/business rules; CAP Consistency (Linearizability) guarantees up-to-date read results."
+  },
+  {
+    "question": "In transaction isolation levels, what anomaly occurs when Transaction A reads a row, Transaction B updates and commits that row, and Transaction A reads the row again receiving different values?",
+    "options": [
+      "Dirty Write",
+      "Fuzzy or Non-Repeatable Read",
+      "Phantom Read",
+      "Write Skew"
+    ],
+    "answer": 2,
+    "explanation": "Non-Repeatable Read (Fuzzy Read) occurs when re-reading the same row within a transaction yields modified column values due to a concurrent committed update."
+  },
+  {
+    "question": "What database isolation level strictly prevents Dirty Reads, Non-Repeatable Reads, and Phantom Reads by simulating serial execution?",
+    "options": [
+      "Read Uncommitted",
+      "Read Committed",
+      "Repeatable Read",
+      "Serializability"
+    ],
+    "answer": 4,
+    "explanation": "Serializability is the highest isolation level, guaranteeing that execution of concurrent transactions yields results identical to executing them serially."
+  },
+  {
+    "question": "In horizontal data partitioning, how does Hash-based partitioning differ from Range-based partitioning?",
+    "options": [
+      "Hash-based uses a hash function on keys to distribute data uniformly, whereas Range-based assigns contiguous key ranges to nodes, risking hotspots on sequential access.",
+      "Hash-based guarantees linearizability, whereas Range-based guarantees eventual consistency.",
+      "Hash-based supports multi-master writes, whereas Range-based only supports single-master reads.",
+      "Hash-based eliminates the need for replication, whereas Range-based requires quorum reads."
+    ],
+    "answer": 1,
+    "explanation": "Hash partitioning uniformly spreads records across shards to avoid hotspots, while Range partitioning keeps contiguous ranges together which benefits range queries but risks hot spots."
+  },
+  {
+    "question": "When designing a system without network failures, what tradeoff exists under the PACELC framework regarding replication strategy?",
+    "options": [
+      "Synchronous replication yields high consistency but higher latency; Asynchronous replication yields lower latency but risks stale reads.",
+      "Synchronous replication eliminates disk failures; Asynchronous replication eliminates network partitions.",
+      "Synchronous replication operates as AP/EL; Asynchronous replication operates as CP/EC.",
+      "Synchronous replication prevents dirty writes; Asynchronous replication prevents write skew."
+    ],
+    "answer": 1,
+    "explanation": "Under normal operations (no partition), choosing synchronous replication increases latency for consistency, while asynchronous replication reduces latency at the cost of consistency."
+  },
+  {
+    "question": "In multi-master replication conflict resolution, what inherent risk is associated with using Last-Write-Wins (LWW) based on physical timestamps?",
+    "options": [
+      "It requires all network links to be fair-loss links.",
+      "Clock skew across physical servers can cause legitimate newer writes to be silently overwritten or dropped.",
+      "It forces the system to switch to single-master mode.",
+      "It causes phantom read anomalies in single-row transactions."
+    ],
+    "answer": 2,
+    "explanation": "LWW relies on physical clock synchronization; clock skew between servers can lead to incorrect ordering and silent data loss."
+  },
+  {
+    "question": "What is the primary operational drawback of Single-Master Replication with synchronous slave updates?",
+    "options": [
+      "Slaves cannot serve read queries.",
+      "A single node crash or slow slave network latency directly degrades write availability and response latency for all clients.",
+      "It permits dirty writes on slave nodes.",
+      "It violates ACID Durability guarantees."
+    ],
+    "answer": 2,
+    "explanation": "In synchronous single-master setup, the master must wait for slave acknowledgments before responding, making write latency vulnerable to slow slaves."
+  },
+  {
+    "question": "Which consistency model guarantees that if event A causes event B, every node in the system observes event A before event B?",
+    "options": [
+      "Eventual Consistency",
+      "Causal Consistency",
+      "Read Uncommitted",
+      "Dirty Consistency"
+    ],
+    "answer": 2,
+    "explanation": "Causal consistency ensures that operations causally related are seen in the same order by every node in the cluster."
+  },
+  {
+    "question": "What characterizes an 'Eventual Consistency' model in distributed databases?",
+    "options": [
+      "All replicas reflect identical data instantly at the millisecond level.",
+      "Replicas may temporarily return stale data, but if no new updates occur, all replicas will eventually converge to identical state.",
+      "Writes are rejected whenever network latency exceeds 100 milliseconds.",
+      "Read operations are guaranteed to be serialized through a single coordinator node."
+    ],
+    "answer": 2,
+    "explanation": "Eventual consistency allows short-term divergence among replicas, guaranteeing that given enough time without new updates, all replicas converge."
+  },
+  {
+    "question": "In database concurrency control, what defines a 'Dirty Write' anomaly?",
+    "options": [
+      "A transaction reads uncommitted data written by another transaction.",
+      "A transaction overwrites uncommitted data that was written by another active concurrent transaction.",
+      "A transaction updates a row that was deleted by a committed transaction.",
+      "A transaction reads different row counts during a predicate scan."
+    ],
+    "answer": 2,
+    "explanation": "Dirty Write occurs when Transaction A overwrites uncommitted data modified by active Transaction B, corrupting rollbacks and invariant checks."
+  },
+  {
+    "question": "What database isolation anomaly occurs when two transactions read identical data, perform independent calculations, and update separate rows, resulting in an invalid combined state?",
+    "options": [
+      "Dirty Read",
+      "Write Skew",
+      "Lost Update",
+      "Dirty Write"
+    ],
+    "answer": 2,
+    "explanation": "Write skew is a classic Snapshot Isolation anomaly where individual writes satisfy local constraints, but combined writes violate global invariants."
+  },
+  {
+    "question": "What mechanism can tracking causality in multi-master conflict resolution use instead of physical system clocks?",
+    "options": [
+      "Vector Clocks / Version Vectors",
+      "Fail-stop detectors",
+      "Range partitioning",
+      "Randomized sleep delays"
+    ],
+    "answer": 1,
+    "explanation": "Vector clocks track causal histories across nodes to detect concurrent updates and causal relationships without relying on synchronized physical clocks."
+  },
+  {
+    "question": "Why is 'Partition Tolerance' considered a non-negotiable requirement in large-scale cloud-native distributed systems?",
+    "options": [
+      "Because networks are inherently subject to physical failures, latency spikes, and packet loss that create partitions.",
+      "Because cloud databases do not support replication across multiple data centers.",
+      "Because CPU multi-threading causes partition errors inside virtual machines.",
+      "Because consistent hashing requires partition tolerance to assign virtual nodes."
+    ],
+    "answer": 1,
+    "explanation": "In real-world networks, partitions (network delays, dropped connections) are inevitable, so systems must be designed to tolerate them."
+  },
+  {
+    "question": "What does the 'Durability' property of ACID transactions guarantee after a transaction commits?",
+    "options": [
+      "The transaction's changes are committed in non-volatile storage and will persist even during power outages or system crashes.",
+      "The transaction executes within less than 5 milliseconds.",
+      "The transaction's read operations bypass cache memory.",
+      "The transaction updates all secondary replicas synchronously."
+    ],
+    "answer": 1,
+    "explanation": "Durability ensures that once a transaction commits, its results are recorded in non-volatile storage (like WAL/disk) and survive system crashes."
+  }
+]

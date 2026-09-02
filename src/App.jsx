@@ -1,770 +1,424 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 
-const bankQuizzesByPath = import.meta.glob('./bank/**/*.json', {
-  eager: true,
-  import: 'default',
-});
-const promptTemplatesByPath = import.meta.glob('./*prompt*.txt', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-});
-
-const LOCAL_BANK_KEY = 'quiz-bank-v1';
-
-const parseTimestampFromFileName = (fileName) => {
-  const match = fileName.match(/^(\d{14})[_-]/);
-  if (!match) return null;
-
-  const stamp = match[1];
-  const year = Number(stamp.slice(0, 4));
-  const month = Number(stamp.slice(4, 6)) - 1;
-  const day = Number(stamp.slice(6, 8));
-  const hour = Number(stamp.slice(8, 10));
-  const minute = Number(stamp.slice(10, 12));
-  const second = Number(stamp.slice(12, 14));
-
-  const parsedDate = new Date(year, month, day, hour, minute, second);
-  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
-};
-
-const parseIsoDate = (value) => {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const formatTimestampForDisplay = (dateValue) => {
-  if (!dateValue) return '';
-  return new Intl.DateTimeFormat(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(dateValue);
-};
-
-const buildLabelFromFileName = (fileName) =>
-  fileName
-    .replace(/\.json$/i, '')
-    .replace(/^\d{14}[_-]/, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-const buildTemplateLabelFromFileName = (fileName) =>
-  fileName
-    .replace(/prompt/gi, ' prompt')
-    .replace(/\.txt$/i, '')
-    .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-    .trim();
-
-const normalizeQuizName = (value, fallbackValue) => {
-  const sanitized = (value || fallbackValue)
-    .toLowerCase()
-    .replace(/\.json$/i, '')
-    .replace(/[^a-z0-9_\- ]+/g, '')
-    .trim()
-    .replace(/\s+/g, '_');
-
-  return sanitized || fallbackValue;
-};
-
-const sortByNewest = (a, b) => {
-  const aTime = parseIsoDate(a.createdAt)?.getTime() ?? 0;
-  const bTime = parseIsoDate(b.createdAt)?.getTime() ?? 0;
-  if (bTime !== aTime) return bTime - aTime;
-  return b.fileName.localeCompare(a.fileName);
-};
-
-const SEED_BANK_QUIZZES = Object.entries(bankQuizzesByPath)
-  .map(([path, data]) => {
-    const fileName = path.split('/').pop() || path;
-    const timestamp = parseTimestampFromFileName(fileName);
-    const label = buildLabelFromFileName(fileName);
-
-    return {
-      id: path,
-      path,
-      fileName,
-      label,
-      createdAt: timestamp?.toISOString() ?? new Date(0).toISOString(),
-      formattedTime: formatTimestampForDisplay(timestamp),
-      data,
-    };
-  })
-  .sort(sortByNewest);
-
-const PROMPT_TEMPLATES = Object.entries(promptTemplatesByPath)
-  .map(([path, content]) => {
-    const fileName = path.split('/').pop() || path;
-    return {
-      id: path,
-      fileName,
-      label: buildTemplateLabelFromFileName(fileName),
-      content,
-    };
-  })
-  .sort((a, b) => a.fileName.localeCompare(b.fileName));
-
-const mapLocalRecordToQuiz = (record) => {
-  const createdDate = parseIsoDate(record.createdAt);
-  return {
-    id: record.id,
-    path: record.id,
-    fileName: record.fileName || `${record.name || 'quiz'}.json`,
-    label: record.name || buildLabelFromFileName(record.fileName || 'quiz.json'),
-    createdAt: record.createdAt,
-    formattedTime: formatTimestampForDisplay(createdDate),
-    data: record.quizJson,
-  };
-};
-
-const loadLocalBank = () => {
-  if (typeof window === 'undefined') return SEED_BANK_QUIZZES;
-
+const normalizeSiteName = (url) => {
   try {
-    const raw = window.localStorage.getItem(LOCAL_BANK_KEY);
-    if (!raw) return SEED_BANK_QUIZZES;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return SEED_BANK_QUIZZES;
-
-    const mapped = parsed
-      .filter((item) => item && Array.isArray(item.quizJson))
-      .map(mapLocalRecordToQuiz)
-      .sort(sortByNewest);
-
-    return mapped.length > 0 ? mapped : SEED_BANK_QUIZZES;
+    return new URL(url).hostname.replace(/^www\./i, '');
   } catch {
-    return SEED_BANK_QUIZZES;
+    return 'Saved website';
   }
 };
 
-const saveLocalBank = (quizzes) => {
-  if (typeof window === 'undefined') return;
-  const records = quizzes.map((quiz) => ({
-    id: quiz.id,
-    name: quiz.label,
-    fileName: quiz.fileName,
-    createdAt: quiz.createdAt,
-    quizJson: quiz.data,
-  }));
-  window.localStorage.setItem(LOCAL_BANK_KEY, JSON.stringify(records));
-};
-
-const parseQuestions = (rawInput) => {
-  const parsed = JSON.parse(rawInput);
-
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error('Input must be a non-empty JSON array.');
-  }
-
-  const rawAnswers = parsed.map((item) => item.answer);
-  const hasZeroBasedSignal = rawAnswers.some((value) => value === 0);
-
-  // Ambiguous values (1..3) are interpreted as 1-based unless at least one
-  // explicit 0 appears, which signals the quiz is using 0-based indexing.
-  const normalizeByQuizFormat = (value) => {
-    if (!Number.isInteger(value)) return -1;
-    if (hasZeroBasedSignal) {
-      return value >= 0 && value <= 3 ? value : -1;
-    }
-    return value >= 1 && value <= 4 ? value - 1 : -1;
-  };
-
-  return parsed.map((item, index) => {
-    const optionError = !Array.isArray(item.options) || item.options.length !== 4;
-    const answerIndex = normalizeByQuizFormat(item.answer);
-
-    if (
-      typeof item.question !== 'string' ||
-      optionError ||
-      answerIndex < 0 ||
-      typeof item.explanation !== 'string'
-    ) {
-      throw new Error(`Invalid question format at item ${index + 1}.`);
-    }
-
-    return {
-      ...item,
-      answer: answerIndex,
-    };
-  });
-};
+const mapSupabaseSite = (item) => ({
+  id: item.id,
+  title: item.title || normalizeSiteName(item.url),
+  url: item.url,
+  topic: item.topic || 'General',
+  snapshotHtml: item.snapshot_html,
+  snapshotCreatedAt: item.snapshot_created_at,
+  createdAt: item.created_at,
+});
 
 function App() {
-  const [bankQuizzes, setBankQuizzes] = useState(SEED_BANK_QUIZZES);
-  const [storageMode, setStorageMode] = useState(supabase ? 'cloud' : 'local');
-  const [bankNotice, setBankNotice] = useState('');
-  const [isBankBusy, setIsBankBusy] = useState(false);
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [error, setError] = useState('');
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [activeSource, setActiveSource] = useState('');
-  const [isBankOpen, setIsBankOpen] = useState(false);
-  const [activeTemplateId, setActiveTemplateId] = useState(PROMPT_TEMPLATES[0]?.id ?? '');
-  const importFileRef = useRef(null);
+  const [websiteUrlInput, setWebsiteUrlInput] = useState('');
+  const [cachedWebsites, setCachedWebsites] = useState([]);
+  const [activeSiteId, setActiveSiteId] = useState('');
+  const [websiteNotice, setWebsiteNotice] = useState('');
+  const [websiteError, setWebsiteError] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [topics, setTopics] = useState([]);
+  const [selectedTopic, setSelectedTopic] = useState('');
 
-  const activeTemplate =
-    PROMPT_TEMPLATES.find((template) => template.id === activeTemplateId) ??
-    PROMPT_TEMPLATES[0] ??
-    null;
+  const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
-  const activateQuiz = (quiz, closeSidebar = false) => {
-    const quizText = JSON.stringify(quiz.data, null, 2);
-    setActiveSource(quiz.id);
-    parseInputText(quizText);
-    if (closeSidebar) setIsBankOpen(false);
-  };
+  // Filter websites by search and topic
+  const filteredWebsites = cachedWebsites.filter((site) => {
+    const matchesSearch =
+      site.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      site.url.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTopic = !selectedTopic || site.topic === selectedTopic;
+    return matchesSearch && matchesTopic;
+  });
+
+  // Sort by most recent first
+  const sortedWebsites = [...filteredWebsites].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+  );
 
   useEffect(() => {
-    const hydrateBank = async () => {
+    const loadSites = async () => {
+      setIsBusy(true);
+
       if (!supabase) {
-        const localQuizzes = loadLocalBank();
-        setBankQuizzes(localQuizzes);
-        setStorageMode('local');
+        setCachedWebsites([]);
+        setActiveSiteId('');
+        setWebsiteNotice('Supabase is not configured. Saved websites are unavailable.');
+        setIsBusy(false);
         return;
       }
 
-      setIsBankBusy(true);
-      const { data, error: fetchError } = await supabase
-        .from('quiz_banks')
-        .select('id, name, quiz_json, created_at')
+      const { data, error } = await supabase
+        .from('saved_websites')
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
         .order('created_at', { ascending: false });
 
-      if (fetchError) {
-        const localQuizzes = loadLocalBank();
-        setBankQuizzes(localQuizzes);
-        setStorageMode('local');
-        setBankNotice('Supabase unavailable. Using local browser storage.');
-        setIsBankBusy(false);
+      if (error) {
+        setCachedWebsites([]);
+        setActiveSiteId('');
+        setWebsiteError(`Unable to load saved websites: ${error.message}`);
+        setIsBusy(false);
         return;
       }
 
-      const cloudQuizzes = (data || []).map((item) => {
-        const createdDate = parseIsoDate(item.created_at);
-        const fileName = `${item.name || 'quiz'}.json`;
-        return {
-          id: item.id,
-          path: item.id,
-          fileName,
-          label: item.name || buildLabelFromFileName(fileName),
-          createdAt: item.created_at,
-          formattedTime: formatTimestampForDisplay(createdDate),
-          data: item.quiz_json,
-        };
-      });
-
-      setBankQuizzes(cloudQuizzes);
-      setStorageMode('cloud');
-      setBankNotice('');
-      setIsBankBusy(false);
+      const remoteSites = (data || []).map(mapSupabaseSite);
+      setCachedWebsites(remoteSites);
+      setActiveSiteId('');
+      setWebsiteNotice('');
+      setIsBusy(false);
     };
 
-    hydrateBank();
+    loadSites();
   }, []);
 
-  useEffect(() => {
-    if (!activeSource && bankQuizzes.length > 0) {
-      activateQuiz(bankQuizzes[0]);
-    }
-  }, [activeSource, bankQuizzes]);
+  const handleSaveWebsite = async () => {
+    const trimmedUrl = websiteUrlInput.trim();
 
-  const parseInputText = (rawText) => {
-    try {
-      const parsedQuestions = parseQuestions(rawText);
-      setQuestions(parsedQuestions);
-      setAnswers({});
-      setQuizSubmitted(false);
-      setError('');
-    } catch (parseError) {
-      setQuestions([]);
-      setAnswers({});
-      setQuizSubmitted(false);
-      setError(parseError.message || 'Unable to parse input JSON.');
-    }
-  };
-
-  const setAnswer = (questionIndex, optionIndex) => {
-    setAnswers((previous) => ({
-      ...previous,
-      [questionIndex]: optionIndex,
-    }));
-  };
-
-  const loadBankQuiz = (quiz) => {
-    activateQuiz(quiz, true);
-  };
-
-  const saveQuizToBank = async (quizData, proposedName) => {
-    const fallbackStamp = new Date()
-      .toISOString()
-      .replace(/[-:TZ.]/g, '')
-      .slice(0, 14);
-
-    const label = normalizeQuizName(proposedName, `quiz_${fallbackStamp}`);
-    const createdAt = new Date().toISOString();
-
-    setIsBankBusy(true);
-    if (supabase && storageMode === 'cloud') {
-      const { data, error: insertError } = await supabase
-        .from('quiz_banks')
-        .insert({
-          name: label,
-          quiz_json: quizData,
-        })
-        .select('id, name, quiz_json, created_at')
-        .single();
-
-      if (insertError) {
-        setBankNotice(insertError.message);
-        setIsBankBusy(false);
-        return false;
-      }
-
-      const createdDate = parseIsoDate(data.created_at);
-      const newQuiz = {
-        id: data.id,
-        path: data.id,
-        fileName: `${data.name}.json`,
-        label: data.name,
-        createdAt: data.created_at,
-        formattedTime: formatTimestampForDisplay(createdDate),
-        data: data.quiz_json,
-      };
-
-      setBankQuizzes((previous) => [newQuiz, ...previous].sort(sortByNewest));
-      setBankNotice('Saved to Supabase.');
-      setIsBankBusy(false);
-      return newQuiz;
-    }
-
-    const id =
-      typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    const localQuiz = {
-      id,
-      path: id,
-      fileName: `${label}.json`,
-      label,
-      createdAt,
-      formattedTime: formatTimestampForDisplay(parseIsoDate(createdAt)),
-      data: quizData,
-    };
-
-    setBankQuizzes((previous) => {
-      const next = [localQuiz, ...previous].sort(sortByNewest);
-      saveLocalBank(next);
-      return next;
-    });
-
-    setBankNotice('Saved to local browser storage.');
-    setIsBankBusy(false);
-    return localQuiz;
-  };
-
-  const importJsonFile = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const rawText = await file.text();
-    let quizData;
-
-    try {
-      parseQuestions(rawText);
-      quizData = JSON.parse(rawText);
-    } catch {
-      setBankNotice('Imported file has invalid quiz JSON format.');
-      event.target.value = '';
+    if (!trimmedUrl) {
+      setWebsiteError('Please enter a website URL first.');
+      setWebsiteNotice('');
       return;
     }
 
-    const savedQuiz = await saveQuizToBank(quizData, file.name.replace(/\.json$/i, ''));
-    if (savedQuiz) activateQuiz(savedQuiz, true);
-    event.target.value = '';
-  };
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(trimmedUrl);
+    } catch {
+      setWebsiteError('Please enter a valid URL, such as https://example.com');
+      setWebsiteNotice('');
+      return;
+    }
 
-  const deleteBankQuiz = async (quiz) => {
-    const shouldDelete = window.confirm(`Delete quiz \"${quiz.label}\"?`);
-    if (!shouldDelete) return;
+    const normalizedUrl = parsedUrl.href;
+    const title = normalizeSiteName(normalizedUrl);
+    const topic = selectedTopic || 'General';
 
-    setIsBankBusy(true);
-    if (supabase && storageMode === 'cloud') {
-      const { error: deleteError } = await supabase.from('quiz_banks').delete().eq('id', quiz.id);
-      if (deleteError) {
-        setBankNotice(deleteError.message);
-        setIsBankBusy(false);
+    if (cachedWebsites.some((site) => site.url.toLowerCase() === normalizedUrl.toLowerCase())) {
+      setWebsiteError('This website is already saved.');
+      setWebsiteNotice('');
+      return;
+    }
+
+    setIsBusy(true);
+    setWebsiteError('');
+
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('saved_websites')
+        .insert({ title, url: normalizedUrl, topic })
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
+        .single();
+
+      if (error) {
+        setWebsiteError(`Unable to save website: ${error.message}`);
+        setIsBusy(false);
         return;
       }
-    }
 
-    let nextQuizzes = [];
-    setBankQuizzes((previous) => {
-      const next = previous.filter((item) => item.id !== quiz.id);
-      nextQuizzes = next;
-      if (storageMode === 'local') saveLocalBank(next);
-      return next;
-    });
-
-    if (activeSource === quiz.id) {
-      setActiveSource('');
-      if (nextQuizzes.length === 0) {
-        setQuestions([]);
-        setAnswers({});
-        setQuizSubmitted(false);
-      }
-    }
-
-    setBankNotice(storageMode === 'cloud' ? 'Deleted from Supabase.' : 'Deleted locally.');
-    setIsBankBusy(false);
-  };
-
-  const renameBankQuiz = async (quiz) => {
-    const nextNameInput = window.prompt('Rename quiz', quiz.label);
-    if (nextNameInput === null) return;
-
-    const nextName = normalizeQuizName(nextNameInput, quiz.label);
-    if (nextName === quiz.label) return;
-
-    setIsBankBusy(true);
-
-    if (supabase && storageMode === 'cloud') {
-      const { error: updateError } = await supabase
-        .from('quiz_banks')
-        .update({ name: nextName })
-        .eq('id', quiz.id);
-
-      if (updateError) {
-        setBankNotice(updateError.message);
-        setIsBankBusy(false);
-        return;
-      }
-    }
-
-    setBankQuizzes((previous) => {
-      const next = previous.map((item) =>
-        item.id === quiz.id
-          ? {
-              ...item,
-              label: nextName,
-              fileName: `${nextName}.json`,
-            }
-          : item,
+      let savedSite = mapSupabaseSite(data);
+      const { data: snapshotData, error: snapshotError } = await supabase.functions.invoke(
+        'capture-website',
+        {
+          body: { websiteId: savedSite.id, url: savedSite.url },
+        },
       );
 
-      if (storageMode === 'local') saveLocalBank(next);
+      if (snapshotError || !snapshotData?.website) {
+        setWebsiteNotice(
+          'Website saved, but its content snapshot could not be created. Deploy capture-website in Supabase.',
+        );
+      } else {
+        savedSite = { ...savedSite, ...snapshotData.website };
+      }
+      setCachedWebsites((previous) => [savedSite, ...previous]);
+      setActiveSiteId(savedSite.id);
+      if (!snapshotError && snapshotData?.website) {
+        setWebsiteNotice('Website and its current content were saved to Supabase.');
+      }
+      setWebsiteUrlInput('');
+      setIsBusy(false);
+      return;
+    }
+
+    setWebsiteError('Supabase is not configured. The website was not saved.');
+    setIsBusy(false);
+  };
+
+  const addTopic = () => {
+    const newTopic = window.prompt('Enter topic name:');
+    if (!newTopic) return;
+    if (topics.includes(newTopic)) {
+      alert('Topic already exists.');
+      return;
+    }
+    const updated = [...topics, newTopic];
+    setTopics(updated);
+  };
+
+  const removeTopic = (topic) => {
+    const updated = topics.filter((t) => t !== topic);
+    setTopics(updated);
+    if (selectedTopic === topic) {
+      setSelectedTopic('');
+    }
+  };
+
+  const removeCachedWebsite = async (siteId) => {
+    const site = cachedWebsites.find((item) => item.id === siteId);
+    if (!site) return;
+
+    setIsBusy(true);
+
+    if (supabase) {
+      const { error } = await supabase.from('saved_websites').delete().eq('id', siteId);
+      if (error) {
+        setWebsiteError(error.message);
+        setIsBusy(false);
+        return;
+      }
+    }
+
+    setCachedWebsites((previous) => {
+      const next = previous.filter((item) => item.id !== siteId);
+      if (activeSiteId === siteId) {
+        setActiveSiteId(next[0]?.id ?? '');
+      }
       return next;
     });
 
-    setBankNotice(storageMode === 'cloud' ? 'Renamed in Supabase.' : 'Renamed locally.');
-    setIsBankBusy(false);
+    setWebsiteError('');
+    setWebsiteNotice('Saved website removed from Supabase.');
+    setIsBusy(false);
   };
 
-  const scoreData = useMemo(() => {
-    if (questions.length === 0) {
-      return {
-        total: 0,
-        attempted: 0,
-        correct: 0,
-        wrong: 0,
-        unattempted: 0,
-        percentage: 0,
-        wrongItems: [],
-      };
-    }
+  const formatDate = (isoDate) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    let correct = 0;
-    let attempted = 0;
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
 
-    const wrongItems = questions
-      .map((question, questionIndex) => {
-        const selected = answers[questionIndex];
-        const hasAnswered = Number.isInteger(selected);
-
-        if (hasAnswered) attempted += 1;
-        if (hasAnswered && selected === question.answer) {
-          correct += 1;
-          return null;
-        }
-
-        if (!hasAnswered) return null;
-
-        return {
-          questionIndex,
-          question,
-          selected,
-        };
-      })
-      .filter(Boolean);
-
-    const total = questions.length;
-    const wrong = attempted - correct;
-    const unattempted = total - attempted;
-    const percentage = total === 0 ? 0 : Math.round((correct / total) * 100);
-
-    return {
-      total,
-      attempted,
-      correct,
-      wrong,
-      unattempted,
-      percentage,
-      wrongItems,
-    };
-  }, [answers, questions]);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
+  };
 
   return (
-    <div className="page-shell">
-      <div className="app-layout">
-        {isBankOpen && (
-          <button
-            className="bank-backdrop"
-            onClick={() => setIsBankOpen(false)}
-            aria-label="Close question bank"
-          />
-        )}
-
-        <aside className={`card bank-sidebar ${isBankOpen ? 'open' : ''}`}>
-          <div className="bank-sidebar-head">
-            <p className="eyebrow">Question Bank</p>
-            <button className="bank-close" onClick={() => setIsBankOpen(false)}>
-              Close
+    <div className="app-wrapper">
+      {/* Modal overlay for site preview */}
+      {activeSite && (
+        <div className="modal-overlay" onClick={() => setActiveSiteId('')}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setActiveSiteId('')}>
+              ✕
             </button>
-          </div>
-          <h2>Load Quiz JSON</h2>
-          <p className="sidebar-note">
-            Mode: <strong>{storageMode === 'cloud' ? 'Supabase Cloud' : 'Local Browser'}</strong>
-          </p>
-
-          <div className="bank-actions">
-            <button
-              className="bank-action ghost"
-              onClick={() => importFileRef.current?.click()}
-              disabled={isBankBusy}
-            >
-              Import JSON File
-            </button>
-            <input
-              ref={importFileRef}
-              className="bank-file-input"
-              type="file"
-              accept=".json,application/json"
-              onChange={importJsonFile}
+            <div className="modal-header">
+              <h2>{activeSite.title}</h2>
+              <div className="modal-actions">
+                <a href={activeSite.url} target="_blank" rel="noreferrer" className="btn-link">
+                  Open original
+                </a>
+                <button
+                  type="button"
+                  className="btn-delete"
+                  onClick={() => {
+                    removeCachedWebsite(activeSite.id);
+                    setActiveSiteId('');
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+            <iframe
+              title={activeSite.title}
+              src={activeSite.snapshotHtml ? undefined : activeSite.url}
+              srcDoc={activeSite.snapshotHtml || undefined}
+              className="modal-iframe"
+              sandbox="allow-same-origin allow-popups allow-forms"
             />
+            <p className="modal-tip">
+              {activeSite.snapshotCreatedAt
+                ? `Showing the saved snapshot from ${formatDate(activeSite.snapshotCreatedAt)}.`
+                : 'No snapshot is available. Use the "Open original" link to view the live website.'}
+            </p>
           </div>
+        </div>
+      )}
 
-          {bankNotice && <p className="bank-notice">{bankNotice}</p>}
+      {/* Header */}
+      <header className="app-header">
+        <div className="header-left">
+          <h1 className="app-title">YOUR CURATED TECHNICAL CACHE</h1>
+        </div>
+        <div className="header-search">
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+          <button className="search-btn">🔍</button>
+        </div>
+        <div className="header-right">
+          <div className="user-dropdown">
+            <span>👤 User</span>
+            <span className="dropdown-icon">▼</span>
+          </div>
+        </div>
+      </header>
 
-          <div className="bank-list" role="list" aria-label="JSON bank files">
-            {bankQuizzes.map((quiz) => (
-              <div
-                key={quiz.id}
-                className={`bank-row ${activeSource === quiz.id ? 'active' : ''}`}
-              >
-                <div className="bank-item">
-                  <button className="bank-item-main" onClick={() => loadBankQuiz(quiz)}>
-                    <span className="bank-item-title">{quiz.label}</span>
-                    {quiz.formattedTime && (
-                      <span className="bank-item-time">{quiz.formattedTime}</span>
-                    )}
-                  </button>
-                  <button
-                    className="bank-rename"
-                    onClick={() => renameBankQuiz(quiz)}
-                    disabled={isBankBusy}
-                    aria-label={`Rename ${quiz.label}`}
-                    title="Rename"
-                  >
-                    ✎
-                  </button>
-                  <button
-                    className="bank-delete"
-                    onClick={() => deleteBankQuiz(quiz)}
-                    disabled={isBankBusy}
-                    aria-label={`Delete ${quiz.label}`}
-                  >
-                    Delete
-                  </button>
-                </div>
+      <div className="app-container">
+        {/* Sidebar with topics */}
+        <aside className="app-sidebar">
+          <div className="sidebar-section">
+            <h3 className="sidebar-title">TOPICS</h3>
+            <button className="topic-item add-topic-btn" onClick={addTopic}>
+              + Add New Topic
+            </button>
+            {topics.length === 0 && !selectedTopic && (
+              <button className="topic-item general-topic" onClick={() => setSelectedTopic('')}>
+                All Topics
+              </button>
+            )}
+            {topics.map((topic) => (
+              <div key={topic} className="topic-wrapper">
+                <button
+                  className={`topic-item ${selectedTopic === topic ? 'active' : ''}`}
+                  onClick={() => setSelectedTopic(selectedTopic === topic ? '' : topic)}
+                >
+                  {topic}
+                </button>
               </div>
             ))}
           </div>
-
-          {bankQuizzes.length === 0 && (
-            <p className="sidebar-empty">No quizzes yet. Save current JSON or import one.</p>
-          )}
         </aside>
 
-        <div className="content-pane">
-          <header className="hero">
-            <div className="hero-top">
-              <p className="eyebrow">JSON-powered learning workflow</p>
-              <button className="bank-toggle" onClick={() => setIsBankOpen(true)}>
-                Open Question Bank
+        {/* Main content */}
+        <main className="app-main">
+          {/* Save section */}
+          <div className="save-section">
+            <h2 className="section-title">Add New Article</h2>
+            <div className="save-form">
+              <input
+                type="url"
+                value={websiteUrlInput}
+                onChange={(e) => setWebsiteUrlInput(e.target.value)}
+                placeholder="https://example.com"
+                className="url-input"
+              />
+              <select
+                value={selectedTopic}
+                onChange={(e) => setSelectedTopic(e.target.value)}
+                className="topic-select"
+              >
+                <option value="">Select Topic...</option>
+                {topics.map((topic) => (
+                  <option key={topic} value={topic}>
+                    {topic}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={handleSaveWebsite}
+                disabled={isBusy}
+                className="btn-save"
+              >
+                {isBusy ? 'Saving...' : 'Save'}
               </button>
             </div>
-            <h1>React Quiz Application</h1>
-            <p>
-              Import quiz JSON files, load them from your bank, answer questions, and
-              review results with live statistics.
-            </p>
-          </header>
+            {websiteError && <p className="error-text">{websiteError}</p>}
+            {websiteNotice && <p className="success-text">{websiteNotice}</p>}
+          </div>
 
-          <main className="grid-layout">
-            <section className="card input-card">
-              <h2>1) Import Or Select Quiz</h2>
-              <p className="workflow-copy">
-                Use <strong>Import JSON File</strong> from the question bank to add a quiz,
-                then click a quiz tab to load it here.
-              </p>
-              {error && <p className="error-text">{error}</p>}
-              {questions.length > 0 ? (
-                <p className="hint-text">
-                  Loaded {questions.length} questions. Answers accept index format 0-3 or
-                  1-4.
-                </p>
-              ) : (
-                <p className="empty-state-text">
-                  No quiz loaded yet. Import a JSON file and select it from the bank.
-                </p>
-              )}
+          {/* Recently saved section */}
+          <section className="articles-section">
+            <h2 className="section-title">
+              {selectedTopic
+                ? `Articles in "${selectedTopic}"`
+                : 'Recently Added & Saved Articles'}
+            </h2>
 
-              {PROMPT_TEMPLATES.length > 0 && (
-                <div className="template-panel">
-                  <div className="template-list" role="tablist" aria-label="Prompt templates">
-                    {PROMPT_TEMPLATES.map((template) => (
+            {sortedWebsites.length === 0 ? (
+              <div className="empty-state-large">
+                {cachedWebsites.length === 0
+                  ? 'No articles saved yet. Add one to get started!'
+                  : 'No articles match your search or topic.'}
+              </div>
+            ) : (
+              <div className="articles-grid">
+                {sortedWebsites.map((site) => (
+                  <div
+                    key={site.id}
+                    className="article-card"
+                    onClick={() => setActiveSiteId(site.id)}
+                  >
+                    <div className="card-header">
+                      <span className="card-domain">{site.topic || 'General'}</span>
+                    </div>
+                    <h3 className="card-title">{site.title}</h3>
+                    <p className="card-url">{site.url}</p>
+                    <p className="card-date">Added {formatDate(site.createdAt)}</p>
+                    <div className="card-actions">
                       <button
-                        key={template.id}
-                        className={`template-chip ${activeTemplate?.id === template.id ? 'active' : ''}`}
-                        onClick={() => setActiveTemplateId(template.id)}
-                        role="tab"
-                        aria-selected={activeTemplate?.id === template.id}
+                        className="action-btn view-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveSiteId(site.id);
+                        }}
                       >
-                        {template.label}
+                        👁 View
                       </button>
-                    ))}
+                      <a
+                        href={site.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="action-btn open-btn"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        🔗 Open
+                      </a>
+                      <button
+                        className="action-btn delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeCachedWebsite(site.id);
+                        }}
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
                   </div>
-
-                  {activeTemplate && (
-                    <div className="template-viewer">
-                      <p className="template-title">{activeTemplate.label}</p>
-                      <pre className="template-content">{activeTemplate.content}</pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-
-            <section className="card stats-card">
-              <h2>2) Statistics</h2>
-              <div className="stats-grid">
-                <Stat label="Total" value={scoreData.total} />
-                <Stat label="Attempted" value={scoreData.attempted} />
-                <Stat label="Correct" value={quizSubmitted ? scoreData.correct : '-'} />
-                <Stat label="Wrong" value={quizSubmitted ? scoreData.wrong : '-'} />
-                <Stat label="Unattempted" value={scoreData.unattempted} />
-                <Stat
-                  label="Score"
-                  value={quizSubmitted ? `${scoreData.percentage}%` : '-'}
-                />
-              </div>
-            </section>
-          </main>
-
-          {questions.length > 0 && (
-            <section className="card quiz-card">
-              <div className="quiz-headline">
-                <h2>3) Display Questions and Select Answers</h2>
-                <button
-                  onClick={() => setQuizSubmitted(true)}
-                  disabled={quizSubmitted}
-                  className={quizSubmitted ? 'disabled' : ''}
-                >
-                  {quizSubmitted ? 'Submitted' : 'Submit Quiz'}
-                </button>
-              </div>
-
-              <div className="question-list">
-                {questions.map((question, questionIndex) => (
-                  <article key={questionIndex} className="question-item">
-                    <p className="question-title">
-                      {questionIndex + 1}. {question.question}
-                    </p>
-                    <div className="options-grid">
-                      {question.options.map((option, optionIndex) => {
-                        const isSelected = answers[questionIndex] === optionIndex;
-                        const isCorrect = quizSubmitted && question.answer === optionIndex;
-                        const isWrong =
-                          quizSubmitted && isSelected && optionIndex !== question.answer;
-
-                        return (
-                          <label
-                            key={optionIndex}
-                            className={`option-chip ${isSelected ? 'selected' : ''} ${
-                              isCorrect ? 'correct' : ''
-                            } ${isWrong ? 'wrong' : ''}`}
-                          >
-                            <input
-                              type="radio"
-                              name={`q-${questionIndex}`}
-                              checked={isSelected}
-                              onChange={() => setAnswer(questionIndex, optionIndex)}
-                              disabled={quizSubmitted}
-                            />
-                            {option}
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {quizSubmitted && (
-                      <p className="explanation">
-                        <strong>Explanation:</strong> {question.explanation}
-                      </p>
-                    )}
-                  </article>
                 ))}
               </div>
-            </section>
-          )}
-
-          {quizSubmitted && scoreData.wrongItems.length > 0 && (
-            <section className="card review-card">
-              <h2>4) Review Wrong Answers</h2>
-              {scoreData.wrongItems.map(({ questionIndex, question, selected }) => (
-                <article key={questionIndex} className="review-item">
-                  <p>
-                    <strong>Q{questionIndex + 1}:</strong> {question.question}
-                  </p>
-                  <p>
-                    <strong>Your answer:</strong> {question.options[selected]}
-                  </p>
-                  <p>
-                    <strong>Correct answer:</strong> {question.options[question.answer]}
-                  </p>
-                  <p>
-                    <strong>Why:</strong> {question.explanation}
-                  </p>
-                </article>
-              ))}
-            </section>
-          )}
-        </div>
+            )}
+          </section>
+        </main>
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }) {
-  return (
-    <div className="stat-box">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
 export default App;
+
