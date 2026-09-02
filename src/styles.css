@@ -240,11 +240,12 @@ select {
 
 .save-form {
   display: grid;
-  grid-template-columns: 1fr 200px auto;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(220px, 1fr) 200px auto;
   gap: 1rem;
   margin-bottom: 1rem;
 }
 
+.title-input,
 .url-input {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -415,31 +416,29 @@ select {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 2rem;
+  padding: 0;
 }
 
 .modal-content {
   background: white;
-  border-radius: 16px;
-  width: min(90vw, 900px);
-  max-height: 90vh;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+  max-height: none;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
-.modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--ink);
+.back-button {
+  padding: 0.55rem 0.85rem;
+  background: transparent;
+  color: var(--accent);
   border: 1px solid var(--border);
-  border-radius: 50%;
-  font-size: 1.2rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
   z-index: 10;
 }
@@ -486,9 +485,109 @@ select {
 }
 
 .modal-iframe {
-  flex: 1;
+  width: 100%;
   border: none;
   min-height: 400px;
+  display: block;
+}
+
+.snapshot-viewer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: #fff;
+}
+
+.annotation-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+.annotation-canvas.drawing {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.annotation-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.eraser-toggle,
+.underline-toggle,
+.clear-annotations {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.eraser-toggle {
+  background: #f6faff;
+  color: var(--subtle);
+  border: 1px solid var(--border);
+}
+
+.eraser-toggle.active {
+  background: var(--ink);
+  color: white;
+}
+
+.underline-toggle {
+  background: #eef4ff;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+
+.underline-toggle.active {
+  background: var(--accent);
+  color: white;
+}
+
+.pen-size {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--subtle);
+}
+
+.pen-size input {
+  width: 90px;
+}
+
+.pen-swatch {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  background: var(--swatch-color) !important;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(15, 39, 74, 0.28);
+}
+
+.pen-swatch.active {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px white, 0 0 0 3px var(--ink);
+}
+
+.clear-annotations {
+  margin-left: auto;
+  background: #fff1f4;
+  color: var(--danger);
+}
+
+.save-annotations {
+  background: var(--success);
+  color: white;
 }
 
 .modal-tip {

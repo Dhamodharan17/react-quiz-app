@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './lib/supabaseClient';
 
 const normalizeSiteName = (url) => {
@@ -16,10 +16,12 @@ const mapSupabaseSite = (item) => ({
   topic: item.topic || 'General',
   snapshotHtml: item.snapshot_html,
   snapshotCreatedAt: item.snapshot_created_at,
+  annotations: Array.isArray(item.annotations) ? item.annotations : [],
   createdAt: item.created_at,
 });
 
 function App() {
+  const [websiteTitleInput, setWebsiteTitleInput] = useState('');
   const [websiteUrlInput, setWebsiteUrlInput] = useState('');
   const [cachedWebsites, setCachedWebsites] = useState([]);
   const [activeSiteId, setActiveSiteId] = useState('');
@@ -29,6 +31,16 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [topics, setTopics] = useState([]);
   const [selectedTopic, setSelectedTopic] = useState('');
+  const [penEnabled, setPenEnabled] = useState(false);
+  const [penMode, setPenMode] = useState('underline');
+  const [penColor, setPenColor] = useState('#e11d48');
+  const [penSize, setPenSize] = useState(4);
+  const [snapshotHeight, setSnapshotHeight] = useState(720);
+  const [draftAnnotations, setDraftAnnotations] = useState([]);
+  const annotationCanvasRef = useRef(null);
+  const currentStrokeRef = useRef(null);
+  const drawFrameRef = useRef(null);
+  const pendingAnnotationsRef = useRef([]);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
 
@@ -60,7 +72,7 @@ function App() {
 
       const { data, error } = await supabase
         .from('saved_websites')
-        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, annotations, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -82,7 +94,14 @@ function App() {
   }, []);
 
   const handleSaveWebsite = async () => {
+    const trimmedTitle = websiteTitleInput.trim();
     const trimmedUrl = websiteUrlInput.trim();
+
+    if (!trimmedTitle) {
+      setWebsiteError('Please enter an article title first.');
+      setWebsiteNotice('');
+      return;
+    }
 
     if (!trimmedUrl) {
       setWebsiteError('Please enter a website URL first.');
@@ -100,7 +119,7 @@ function App() {
     }
 
     const normalizedUrl = parsedUrl.href;
-    const title = normalizeSiteName(normalizedUrl);
+    const title = trimmedTitle;
     const topic = selectedTopic || 'General';
 
     if (cachedWebsites.some((site) => site.url.toLowerCase() === normalizedUrl.toLowerCase())) {
@@ -116,7 +135,7 @@ function App() {
       const { data, error } = await supabase
         .from('saved_websites')
         .insert({ title, url: normalizedUrl, topic })
-        .select('id, title, url, topic, snapshot_html, snapshot_created_at, created_at')
+        .select('id, title, url, topic, snapshot_html, snapshot_created_at, annotations, created_at')
         .single();
 
       if (error) {
@@ -146,6 +165,7 @@ function App() {
         setWebsiteNotice('Website and its current content were saved to Supabase.');
       }
       setWebsiteUrlInput('');
+      setWebsiteTitleInput('');
       setIsBusy(false);
       return;
     }
@@ -153,6 +173,177 @@ function App() {
     setWebsiteError('Supabase is not configured. The website was not saved.');
     setIsBusy(false);
   };
+
+  const refreshSnapshot = async (site) => {
+    if (!supabase) {
+      setWebsiteError('Supabase is not configured.');
+      return;
+    }
+
+    setIsBusy(true);
+    setWebsiteError('');
+    const { data, error } = await supabase.functions.invoke('capture-website', {
+      body: { websiteId: site.id, url: site.url },
+    });
+
+    if (error || !data?.website) {
+      setWebsiteError('Unable to refresh the snapshot. Check that capture-website is deployed.');
+      setIsBusy(false);
+      return;
+    }
+
+    const updatedSite = { ...site, ...data.website };
+    setCachedWebsites((previous) =>
+      previous.map((cachedSite) => (cachedSite.id === site.id ? updatedSite : cachedSite)),
+    );
+    setWebsiteNotice('Website snapshot refreshed.');
+    setIsBusy(false);
+  };
+
+  const drawAnnotations = (annotations) => {
+    const canvas = annotationCanvasRef.current;
+    if (!canvas) return;
+
+    const context = canvas.getContext('2d');
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    const pixelRatio = window.devicePixelRatio || 1;
+    canvas.width = width * pixelRatio;
+    canvas.height = height * pixelRatio;
+    context.scale(pixelRatio, pixelRatio);
+    context.clearRect(0, 0, width, height);
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    annotations.forEach((stroke) => {
+      if (!stroke.points || stroke.points.length < 2) return;
+      context.beginPath();
+      context.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
+      context.strokeStyle = stroke.color;
+      context.lineWidth = stroke.size;
+      context.moveTo(stroke.points[0].x, stroke.points[0].y);
+      if (stroke.mode === 'underline') {
+        const endPoint = stroke.points[stroke.points.length - 1];
+        context.lineTo(endPoint.x, endPoint.y);
+      } else {
+        for (let index = 1; index < stroke.points.length - 1; index += 1) {
+          const point = stroke.points[index];
+          const nextPoint = stroke.points[index + 1];
+          context.quadraticCurveTo(
+            point.x,
+            point.y,
+            (point.x + nextPoint.x) / 2,
+            (point.y + nextPoint.y) / 2,
+          );
+        }
+        const lastPoint = stroke.points[stroke.points.length - 1];
+        context.lineTo(lastPoint.x, lastPoint.y);
+      }
+      context.stroke();
+    });
+    context.globalCompositeOperation = 'source-over';
+  };
+
+  const scheduleAnnotationDraw = (annotations) => {
+    pendingAnnotationsRef.current = annotations;
+    if (drawFrameRef.current) return;
+
+    drawFrameRef.current = window.requestAnimationFrame(() => {
+      drawAnnotations(pendingAnnotationsRef.current);
+      drawFrameRef.current = null;
+    });
+  };
+
+  useEffect(() => {
+    setDraftAnnotations(activeSite?.annotations ?? []);
+  }, [activeSiteId]);
+
+  useEffect(() => {
+    if (activeSite?.snapshotHtml) drawAnnotations(draftAnnotations);
+  }, [activeSite?.snapshotHtml, draftAnnotations, snapshotHeight]);
+
+  useEffect(() => {
+    const undoLastStroke = (event) => {
+      if (
+        !penEnabled ||
+        !activeSite?.snapshotHtml ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.key.toLowerCase() !== 'z'
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setDraftAnnotations((previous) => previous.slice(0, -1));
+    };
+
+    window.addEventListener('keydown', undoLastStroke);
+    return () => window.removeEventListener('keydown', undoLastStroke);
+  }, [activeSite?.snapshotHtml, penEnabled]);
+
+  const getCanvasPoint = (event) => {
+    const bounds = annotationCanvasRef.current.getBoundingClientRect();
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+  };
+
+  const startAnnotation = (event) => {
+    if (!penEnabled || !activeSite?.snapshotHtml) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    currentStrokeRef.current = {
+      mode: penMode,
+      color: penColor,
+      size: penMode === 'erase' ? Math.max(penSize * 3, 14) : penSize,
+      points: [getCanvasPoint(event)],
+    };
+  };
+
+  const extendAnnotation = (event) => {
+    const stroke = currentStrokeRef.current;
+    if (!stroke) return;
+    if (stroke.mode === 'underline') {
+      const pointerEvents = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+      const point = getCanvasPoint(pointerEvents[pointerEvents.length - 1]);
+      stroke.points[1] = { x: point.x, y: stroke.points[0].y };
+      scheduleAnnotationDraw([...draftAnnotations, stroke]);
+      return;
+    }
+    const pointerEvents = event.nativeEvent.getCoalescedEvents?.() ?? [event.nativeEvent];
+    pointerEvents.forEach((pointerEvent) => stroke.points.push(getCanvasPoint(pointerEvent)));
+    scheduleAnnotationDraw([...draftAnnotations, stroke]);
+  };
+
+  const finishAnnotation = () => {
+    const stroke = currentStrokeRef.current;
+    currentStrokeRef.current = null;
+    if (!stroke || stroke.points.length < 2) return;
+    setDraftAnnotations((previous) => [...previous, stroke]);
+  };
+
+  const saveAnnotations = async () => {
+    if (!activeSite || !supabase) return;
+    setIsBusy(true);
+    const { error } = await supabase
+      .from('saved_websites')
+      .update({ annotations: draftAnnotations })
+      .eq('id', activeSite.id);
+
+    if (error) {
+      setWebsiteError(`Unable to save pen marks: ${error.message}`);
+      setIsBusy(false);
+      return;
+    }
+
+    setCachedWebsites((previous) =>
+      previous.map((site) =>
+        site.id === activeSite.id ? { ...site, annotations: draftAnnotations } : site,
+      ),
+    );
+    setWebsiteNotice('Pen marks saved to Supabase.');
+    setIsBusy(false);
+  };
+
+  const clearAnnotations = () => setDraftAnnotations([]);
 
   const addTopic = () => {
     const newTopic = window.prompt('Enter topic name:');
@@ -228,15 +419,23 @@ function App() {
       {activeSite && (
         <div className="modal-overlay" onClick={() => setActiveSiteId('')}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setActiveSiteId('')}>
-              ✕
-            </button>
             <div className="modal-header">
               <h2>{activeSite.title}</h2>
               <div className="modal-actions">
+                <button type="button" className="back-button" onClick={() => setActiveSiteId('')}>
+                  Back to cache
+                </button>
                 <a href={activeSite.url} target="_blank" rel="noreferrer" className="btn-link">
                   Open original
                 </a>
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => refreshSnapshot(activeSite)}
+                  disabled={isBusy}
+                >
+                  {isBusy ? 'Refreshing...' : 'Refresh snapshot'}
+                </button>
                 <button
                   type="button"
                   className="btn-delete"
@@ -249,13 +448,105 @@ function App() {
                 </button>
               </div>
             </div>
-            <iframe
-              title={activeSite.title}
-              src={activeSite.snapshotHtml ? undefined : activeSite.url}
-              srcDoc={activeSite.snapshotHtml || undefined}
-              className="modal-iframe"
-              sandbox="allow-same-origin allow-popups allow-forms"
-            />
+            <div className="snapshot-viewer">
+              <iframe
+                title={activeSite.title}
+                src={activeSite.snapshotHtml ? undefined : activeSite.url}
+                srcDoc={activeSite.snapshotHtml || undefined}
+                className="modal-iframe"
+                sandbox="allow-same-origin allow-popups allow-forms"
+                style={{ height: activeSite.snapshotHtml ? `${snapshotHeight}px` : undefined }}
+                onLoad={(event) => {
+                  if (!activeSite.snapshotHtml) return;
+                  const document = event.currentTarget.contentDocument;
+                  if (!document) return;
+                  const pageHeight = Math.max(
+                    document.body?.scrollHeight || 0,
+                    document.documentElement.scrollHeight,
+                  );
+                  setSnapshotHeight(Math.max(720, pageHeight));
+                }}
+              />
+              {activeSite.snapshotHtml && (
+                <canvas
+                  ref={annotationCanvasRef}
+                  className={`annotation-canvas ${penEnabled ? 'drawing' : ''}`}
+                  style={{ height: `${snapshotHeight}px` }}
+                  onPointerDown={startAnnotation}
+                  onPointerMove={extendAnnotation}
+                  onPointerUp={finishAnnotation}
+                  onPointerCancel={finishAnnotation}
+                />
+              )}
+            </div>
+            {activeSite.snapshotHtml && (
+              <div className="annotation-toolbar">
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'erase' ? 'eraser-toggle active' : 'eraser-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'erase') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('erase');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Eraser
+                </button>
+                <button
+                  type="button"
+                  className={penEnabled && penMode === 'underline' ? 'underline-toggle active' : 'underline-toggle'}
+                  onClick={() => {
+                    if (penEnabled && penMode === 'underline') {
+                      setPenEnabled(false);
+                    } else {
+                      setPenMode('underline');
+                      setPenEnabled(true);
+                    }
+                  }}
+                >
+                  Underline
+                </button>
+                <label className="pen-size">
+                  Size
+                  <input
+                    type="range"
+                    min="1"
+                    max="18"
+                    value={penSize}
+                    onChange={(event) => setPenSize(Number(event.target.value))}
+                  />
+                </label>
+                {['#e11d48', '#111827', '#2563eb', '#059669'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`pen-swatch ${penColor === color ? 'active' : ''}`}
+                    style={{ '--swatch-color': color }}
+                    aria-label={`Use ${color} pen`}
+                    onClick={() => setPenColor(color)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="clear-annotations"
+                  onClick={clearAnnotations}
+                  disabled={draftAnnotations.length === 0 || isBusy}
+                >
+                  Clear marks
+                </button>
+                <button
+                  type="button"
+                  className="save-annotations"
+                  onClick={saveAnnotations}
+                  disabled={isBusy}
+                >
+                  {isBusy ? 'Saving...' : 'Save marks'}
+                </button>
+              </div>
+            )}
             <p className="modal-tip">
               {activeSite.snapshotCreatedAt
                 ? `Showing the saved snapshot from ${formatDate(activeSite.snapshotCreatedAt)}.`
@@ -320,6 +611,13 @@ function App() {
           <div className="save-section">
             <h2 className="section-title">Add New Article</h2>
             <div className="save-form">
+              <input
+                type="text"
+                value={websiteTitleInput}
+                onChange={(e) => setWebsiteTitleInput(e.target.value)}
+                placeholder="Article title"
+                className="title-input"
+              />
               <input
                 type="url"
                 value={websiteUrlInput}
