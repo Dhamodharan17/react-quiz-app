@@ -47,6 +47,7 @@ function App() {
   const pendingAnnotationsRef = useRef([]);
   const textDragRef = useRef(null);
   const laserFadeFrameRef = useRef(null);
+  const snapshotViewerRef = useRef(null);
 
   const activeSite = cachedWebsites.find((site) => site.id === activeSiteId) ?? null;
   const hasUnsavedAnnotationChanges =
@@ -223,16 +224,23 @@ function App() {
     context.lineCap = 'round';
     context.lineJoin = 'round';
 
+    const toCanvasPoint = (point, stroke) =>
+      stroke.coordinateSpace === 'relative'
+        ? { x: point.x * width, y: point.y * height }
+        : point;
+
     const drawStroke = (stroke, isLaser = false) => {
       if (stroke.mode === 'text') {
         if (!stroke.text || !stroke.points?.[0]) return;
+        const point = toCanvasPoint(stroke.points[0], stroke);
         context.globalCompositeOperation = 'source-over';
         context.fillStyle = stroke.color;
         context.font = `${Math.max(stroke.size * 4, 14)}px Segoe UI, sans-serif`;
-        context.fillText(stroke.text, stroke.points[0].x, stroke.points[0].y);
+        context.fillText(stroke.text, point.x, point.y);
         return;
       }
       if (!stroke.points || stroke.points.length < 2) return;
+      const points = stroke.points.map((point) => toCanvasPoint(point, stroke));
       context.beginPath();
       context.globalCompositeOperation = stroke.mode === 'erase' ? 'destination-out' : 'source-over';
       context.strokeStyle = stroke.color;
@@ -242,14 +250,14 @@ function App() {
         context.shadowColor = stroke.color;
         context.shadowBlur = 12;
       }
-      context.moveTo(stroke.points[0].x, stroke.points[0].y);
+      context.moveTo(points[0].x, points[0].y);
       if (stroke.mode === 'underline') {
-        const endPoint = stroke.points[stroke.points.length - 1];
+        const endPoint = points[points.length - 1];
         context.lineTo(endPoint.x, endPoint.y);
       } else {
-        for (let index = 1; index < stroke.points.length - 1; index += 1) {
-          const point = stroke.points[index];
-          const nextPoint = stroke.points[index + 1];
+        for (let index = 1; index < points.length - 1; index += 1) {
+          const point = points[index];
+          const nextPoint = points[index + 1];
           context.quadraticCurveTo(
             point.x,
             point.y,
@@ -257,7 +265,7 @@ function App() {
             (point.y + nextPoint.y) / 2,
           );
         }
-        const lastPoint = stroke.points[stroke.points.length - 1];
+        const lastPoint = points[points.length - 1];
         context.lineTo(lastPoint.x, lastPoint.y);
       }
       context.stroke();
@@ -288,6 +296,16 @@ function App() {
     if (activeSite?.snapshotHtml) drawAnnotations(draftAnnotations, laserStroke, laserOpacity);
   }, [activeSite?.snapshotHtml, draftAnnotations, laserOpacity, laserStroke, snapshotHeight]);
 
+  useEffect(() => {
+    const viewer = snapshotViewerRef.current;
+    if (!viewer || !activeSite?.snapshotHtml) return undefined;
+    const observer = new ResizeObserver(() => {
+      drawAnnotations(draftAnnotations, laserStroke, laserOpacity);
+    });
+    observer.observe(viewer);
+    return () => observer.disconnect();
+  }, [activeSite?.snapshotHtml, draftAnnotations, laserOpacity, laserStroke]);
+
   useEffect(
     () => () => {
       if (laserFadeFrameRef.current) window.cancelAnimationFrame(laserFadeFrameRef.current);
@@ -316,7 +334,16 @@ function App() {
 
   const getCanvasPoint = (event) => {
     const bounds = annotationCanvasRef.current.getBoundingClientRect();
-    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    return {
+      x: (event.clientX - bounds.left) / bounds.width,
+      y: (event.clientY - bounds.top) / bounds.height,
+    };
+  };
+
+  const getDisplayPoint = (point) => {
+    const canvas = annotationCanvasRef.current;
+    if (!canvas) return point;
+    return { x: point.x * canvas.clientWidth, y: point.y * canvas.clientHeight };
   };
 
   const startAnnotation = (event) => {
@@ -336,6 +363,7 @@ function App() {
       mode: penMode,
       color: penColor,
       size: penMode === 'erase' ? Math.max(penSize * 3, 14) : penMode === 'laser' ? Math.max(penSize, 3) : penSize,
+      coordinateSpace: 'relative',
       points: [getCanvasPoint(event)],
     };
     if (penMode === 'laser') {
@@ -395,6 +423,7 @@ function App() {
           mode: 'text',
           color: penColor,
           size: penSize,
+          coordinateSpace: 'relative',
           points: [{ x: textInput.x, y: textInput.y }],
           text,
         },
@@ -420,8 +449,8 @@ function App() {
     if (!drag) return;
     setTextInput((previous) => ({
       ...previous,
-      x: drag.textX + event.clientX - drag.startX,
-      y: drag.textY + event.clientY - drag.startY,
+      x: drag.textX + (event.clientX - drag.startX) / annotationCanvasRef.current.clientWidth,
+      y: drag.textY + (event.clientY - drag.startY) / annotationCanvasRef.current.clientHeight,
     }));
   };
 
@@ -561,7 +590,7 @@ function App() {
                 </button>
               </div>
             </div>
-            <div className="snapshot-viewer">
+            <div ref={snapshotViewerRef} className="snapshot-viewer">
               <iframe
                 title={activeSite.title}
                 src={activeSite.snapshotHtml ? undefined : activeSite.url}
@@ -595,8 +624,8 @@ function App() {
                 <div
                   className="annotation-text-editor"
                   style={{
-                    left: `${textInput.x}px`,
-                    top: `${textInput.y - 24}px`,
+                    left: `${getDisplayPoint(textInput).x}px`,
+                    top: `${getDisplayPoint(textInput).y - 24}px`,
                   }}
                 >
                   <button
