@@ -524,7 +524,6 @@ function App() {
   const startAnnotation = (event) => {
     if (!penEnabled || !activeSite?.snapshotHtml) return;
     event.preventDefault();
-    if (penMode === 'underline') return;
     if (penMode === 'text') {
       const point = getCanvasPoint(event.nativeEvent);
       setTextInput({ ...point, value: '' });
@@ -831,7 +830,7 @@ function App() {
               {activeSite.snapshotHtml && (
                 <canvas
                   ref={annotationCanvasRef}
-                  className={`annotation-canvas ${penEnabled && penMode !== 'underline' ? 'drawing' : ''}`}
+                  className={`annotation-canvas ${penEnabled && penMode !== 'text' ? 'drawing' : ''}`}
                   style={{ height: `${snapshotHeight}px` }}
                   onPointerDown={startAnnotation}
                   onPointerMove={extendAnnotation}
