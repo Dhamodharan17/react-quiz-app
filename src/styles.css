@@ -306,6 +306,32 @@ select {
   font-weight: 700;
 }
 
+.pdf-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #eef4ff;
+  color: var(--accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pdf-upload-button:hover {
+  background: #dcecff;
+}
+
+.pdf-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .error-text {
   margin: 0;
   color: var(--danger);
@@ -418,14 +444,21 @@ select {
   color: var(--accent);
 }
 
-.read-later-item p {
+.read-later-item .read-later-url {
+  display: block;
   max-width: 68vw;
-  margin: 0.2rem 0 0;
+  margin-top: 0.2rem;
   overflow: hidden;
   color: var(--subtle);
   font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-decoration: none;
+}
+
+.read-later-item .read-later-url:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .read-later-remove {
@@ -496,6 +529,37 @@ select {
   font-weight: 700;
   color: var(--ink);
   line-height: 1.3;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.card-title-row .card-title {
+  flex: 1;
+}
+
+.edit-title-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  color: var(--subtle);
+  border: 1px solid transparent;
+  border-radius: 5px;
+}
+
+.edit-title-button:hover:not(:disabled) {
+  background: #eef4ff;
+  color: var(--accent);
+  border-color: var(--border);
+  transform: none;
 }
 
 .card-url {
@@ -646,6 +710,41 @@ select {
   border: none;
   min-height: 400px;
   display: block;
+}
+
+.pdf-annotation-viewer {
+  height: 100%;
+  overflow: auto;
+  padding: 1rem;
+  background: #202124;
+}
+
+.pdf-page {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.34);
+}
+
+.pdf-page > canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.pdf-annotation-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pdf-annotation-layer.drawing {
+  pointer-events: auto;
+  cursor: crosshair;
+  touch-action: none;
 }
 
 .snapshot-unavailable {
